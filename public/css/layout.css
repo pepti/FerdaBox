@@ -275,7 +275,15 @@
 
 /* ── Mobile nav ── */
 @media (max-width: 640px) {
+  .lol-nav { padding: 0 12px; }
+  .lol-nav__brand { width: auto; flex-shrink: 0; }
+  .lol-nav__right  { width: auto; flex-shrink: 0; gap: 8px; }
+
   .lol-nav__hamburger { display: flex; }
+
+  /* Hide lang toggle from top bar; show inside mobile menu instead */
+  .lol-nav__right > .lol-nav__lang { display: none; }
+  .lol-nav__center > .lol-nav__lang-mobile { display: flex; }
 
   .lol-nav__center {
     display: none;
@@ -293,4 +301,11 @@
     font-size: 0.8rem;
   }
   .lol-nav__link::after { display: none; }
+}
+
+/* Language toggle inside mobile menu — hidden on desktop */
+.lol-nav__lang-mobile {
+  display: none;
+  gap: 2px; padding: 10px 24px;
+  background: rgba(255,255,255,0.03);
 }

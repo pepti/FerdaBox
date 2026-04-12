@@ -49,6 +49,10 @@ export class NavBar {
         </a>
         <a href="#/party" class="lol-nav__link lol-nav__party-link" data-route="/party"
            id="nav-party-link" style="display:none" aria-label="Party">Party</a>
+        <div class="lol-nav__lang lol-nav__lang-mobile" id="nav-lang-mobile">
+          <button class="lol-nav__lang-btn${getLang() === 'is' ? ' active' : ''}" data-lang="is">IS</button>
+          <button class="lol-nav__lang-btn${getLang() === 'en' ? ' active' : ''}" data-lang="en">EN</button>
+        </div>
       </div>
 
       <!-- Right: Language toggle + Hamburger + Auth -->
