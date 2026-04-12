@@ -3,13 +3,13 @@
 const db = require('../config/database');
 
 // Explicit column list — avoids SELECT * so schema changes are explicit
-const COLUMNS = 'id, title, description, category, year, tools_used, image_url, featured, video_section_position, created_at, updated_at';
+const COLUMNS = 'id, title, description, category, year, tools_used, image_url, featured, video_section_position, price, compare_at_price, stock_quantity, sku, status, created_at, updated_at';
 
 class Project {
   // ── READ ──────────────────────────────────────────────────────────────────
 
   static async findAll(filters = {}) {
-    const { category, featured, year, limit = 20, offset = 0 } = filters;
+    const { category, featured, year, status, limit = 20, offset = 0 } = filters;
     const conditions = [];
     const params     = [];
 
@@ -24,6 +24,10 @@ class Project {
     if (year) {
       params.push(Number(year));
       conditions.push(`year = $${params.length}`);
+    }
+    if (status) {
+      params.push(status);
+      conditions.push(`status = $${params.length}`);
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -54,19 +58,24 @@ class Project {
   // ── WRITE ─────────────────────────────────────────────────────────────────
 
   static async create(data) {
-    const { title, description, category, year, tools_used = [], image_url = null, featured = false } = data;
+    const {
+      title, description, category, year, tools_used = [], image_url = null, featured = false,
+      price = 0, compare_at_price = null, stock_quantity = 0, sku = null, status = 'draft',
+    } = data;
     const { rows } = await db.query(
-      `INSERT INTO projects (title, description, category, year, tools_used, image_url, featured)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO projects (title, description, category, year, tools_used, image_url, featured, price, compare_at_price, stock_quantity, sku, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING ${COLUMNS}`,
-      [title, description, category, Number(year), tools_used, image_url, Boolean(featured)]
+      [title, description, category, Number(year), tools_used, image_url, Boolean(featured),
+       Number(price), compare_at_price != null ? Number(compare_at_price) : null,
+       Number(stock_quantity), sku || null, status]
     );
     return rows[0];
   }
 
   static async update(id, data) {
     // Build SET clause dynamically — only update provided fields
-    const allowed = ['title', 'description', 'category', 'year', 'tools_used', 'image_url', 'featured', 'video_section_position'];
+    const allowed = ['title', 'description', 'category', 'year', 'tools_used', 'image_url', 'featured', 'video_section_position', 'price', 'compare_at_price', 'stock_quantity', 'sku', 'status'];
     const sets   = [];
     const params = [];
 

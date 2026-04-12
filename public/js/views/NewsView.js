@@ -4,15 +4,16 @@
 
 import { getUser }        from '../services/auth.js';
 import { getCsrfHeaders } from '../utils/api.js';
+import { t }              from '../i18n/index.js';
 
 const PAGE_SIZE = 9;
 
 // Known categories — expanded dynamically from API results
 const CATEGORY_LABELS = {
-  news:         'News',
-  announcement: 'Announcement',
-  carpentry:    'Carpentry',
-  tech:         'Tech',
+  news:         () => t('news.catNews'),
+  announcement: () => t('news.catAnnouncement'),
+  products:     () => t('news.catProducts'),
+  tips:         () => t('news.catTips'),
 };
 
 function _esc(str) {
@@ -53,20 +54,20 @@ export class NewsView {
     this._view.innerHTML = `
       <div class="news-page__inner">
         <header class="news-page__header">
-          <p class="news-page__eyebrow">Latest from</p>
-          <h1 class="news-page__title">Halli's Workshop</h1>
-          <p class="news-page__sub">Write-ups on carpentry projects, tech builds, and whatever else is on the bench.</p>
+          <p class="news-page__eyebrow">${t('news.latestFrom')}</p>
+          <h1 class="news-page__title">${t('news.brandName')}</h1>
+          <p class="news-page__sub">${t('news.description')}</p>
         </header>
 
         <div class="news-page__controls">
           <div class="news-page__filters" id="news-filters" role="group" aria-label="Filter by category">
-            <button class="news-filter-btn active" data-cat="" aria-pressed="true">All</button>
+            <button class="news-filter-btn active" data-cat="" aria-pressed="true">${t('news.all')}</button>
           </div>
           ${this._adminNewBtn()}
         </div>
 
         <div class="news-page__grid" id="news-grid" aria-live="polite">
-          <div class="news-page__loading">Loading articles…</div>
+          <div class="news-page__loading">${t('news.loading')}</div>
         </div>
 
         <div class="news-page__pagination" id="news-pagination"></div>
@@ -83,7 +84,7 @@ export class NewsView {
     if (!user || !['admin', 'moderator'].includes(user.role)) return '';
     return `
       <button class="news-admin-btn news-admin-btn--new" id="news-new-btn">
-        + New Article
+        ${t('news.newArticle')}
       </button>`;
   }
 
@@ -116,7 +117,7 @@ export class NewsView {
       this._renderPagination();
     } catch (err) {
       const grid = this._view.querySelector('#news-grid');
-      if (grid) grid.innerHTML = `<p class="news-page__error">Could not load articles — try refreshing.</p>`;
+      if (grid) grid.innerHTML = `<p class="news-page__error">${t('news.loadError')}</p>`;
     } finally {
       this._loading = false;
     }
@@ -125,7 +126,7 @@ export class NewsView {
   _setGridLoading(on) {
     const grid = this._view?.querySelector('#news-grid');
     if (!grid) return;
-    if (on) grid.innerHTML = '<div class="news-page__loading">Loading…</div>';
+    if (on) grid.innerHTML = `<div class="news-page__loading">${t('news.loading')}</div>`;
   }
 
   _renderFilterBar() {
@@ -134,12 +135,12 @@ export class NewsView {
 
     // Keep "All" button, add one per category
     bar.innerHTML = `
-      <button class="news-filter-btn${!this._category ? ' active' : ''}" data-cat="" aria-pressed="${!this._category}">All</button>
+      <button class="news-filter-btn${!this._category ? ' active' : ''}" data-cat="" aria-pressed="${!this._category}">${t('news.all')}</button>
       ${this._categories.map(cat => `
         <button class="news-filter-btn${this._category === cat ? ' active' : ''}"
                 data-cat="${_esc(cat)}"
                 aria-pressed="${this._category === cat}">
-          ${_esc(CATEGORY_LABELS[cat] || cat)}
+          ${_esc(CATEGORY_LABELS[cat] ? CATEGORY_LABELS[cat]() : cat)}
         </button>`).join('')}
     `;
     this._bindFilters();
@@ -150,7 +151,7 @@ export class NewsView {
     if (!grid) return;
 
     if (this._articles.length === 0) {
-      grid.innerHTML = '<p class="news-page__empty">No articles in this category yet.</p>';
+      grid.innerHTML = `<p class="news-page__empty">${t('news.noArticles')}</p>`;
       return;
     }
 
@@ -193,9 +194,9 @@ export class NewsView {
     }
 
     pag.innerHTML = `
-      ${hasBack ? `<button class="news-pag-btn" id="news-prev">← Previous</button>` : ''}
+      ${hasBack ? `<button class="news-pag-btn" id="news-prev">${t('news.previous')}</button>` : ''}
       <span class="news-pag-info">${this._offset + 1}–${Math.min(this._offset + this._articles.length, this._total)} of ${this._total}</span>
-      ${hasMore ? `<button class="news-pag-btn news-pag-btn--primary" id="news-next">Next →</button>` : ''}
+      ${hasMore ? `<button class="news-pag-btn news-pag-btn--primary" id="news-next">${t('news.next')}</button>` : ''}
     `;
 
     pag.querySelector('#news-prev')?.addEventListener('click', () => {
@@ -241,10 +242,10 @@ export class NewsView {
     overlay.id     = 'news-editor-overlay';
     overlay.className = 'news-editor-overlay';
     overlay.innerHTML = `
-      <div class="news-editor" role="dialog" aria-modal="true" aria-label="${isNew ? 'New Article' : 'Edit Article'}">
+      <div class="news-editor" role="dialog" aria-modal="true" aria-label="${isNew ? t('news.newArticle') : t('news.editArticle')}">
         <div class="news-editor__header">
-          <h2 class="news-editor__title">${isNew ? 'New Article' : 'Edit Article'}</h2>
-          <button class="news-editor__close" aria-label="Close editor">✕</button>
+          <h2 class="news-editor__title">${isNew ? t('news.newArticle') : t('news.editArticle')}</h2>
+          <button class="news-editor__close" aria-label="${t('common.close')}">✕</button>
         </div>
         <form class="news-editor__form" id="news-editor-form" novalidate>
           <label class="news-editor__label">Title *
@@ -283,9 +284,9 @@ export class NewsView {
           </div>
           <div class="news-editor__status" id="editor-status" aria-live="polite"></div>
           <div class="news-editor__actions">
-            <button type="button" class="news-editor__btn news-editor__btn--cancel" id="editor-cancel-btn">Cancel</button>
+            <button type="button" class="news-editor__btn news-editor__btn--cancel" id="editor-cancel-btn">${t('common.cancel')}</button>
             <button type="submit" class="news-editor__btn news-editor__btn--save">
-              ${isNew ? 'Create Article' : 'Save Changes'}
+              ${isNew ? t('common.save') : t('common.saveChanges')}
             </button>
           </div>
         </form>
@@ -328,7 +329,7 @@ export class NewsView {
     status.textContent = '';
     status.className   = 'news-editor__status';
     saveBtn.disabled   = true;
-    saveBtn.textContent = 'Saving…';
+    saveBtn.textContent = t('common.saving');
 
     try {
       const headers = await getCsrfHeaders();
@@ -357,7 +358,7 @@ export class NewsView {
       status.textContent = err.message;
     } finally {
       saveBtn.disabled    = false;
-      saveBtn.textContent = isNew ? 'Create Article' : 'Save Changes';
+      saveBtn.textContent = isNew ? t('common.save') : t('common.saveChanges');
     }
   }
 }

@@ -1,12 +1,14 @@
-// Category fallback images — Iceland landscapes, no people, no foreign flags
 const CATEGORY_IMAGES = {
-  tech:        'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=500&fit=crop&q=80&auto=format',
-  carpentry:   'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&h=500&fit=crop&q=80&auto=format',
-  remodelling: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=500&fit=crop&q=80&auto=format',
-  tools:       'https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=800&h=500&fit=crop&q=80&auto=format',
+  roof_boxes:   '/assets/products/explorer-400l.jpg',
+  roof_racks:   '/assets/products/cross-bars.jpg',
+  accessories:  '/assets/products/cargo-net.jpg',
+  bundles:      '/assets/products/starter-bundle.jpg',
+  tech:         '/assets/products/explorer-400l.jpg',
+  carpentry:    '/assets/products/explorer-400l.jpg',
 };
 
 import { escHtml } from '../utils/escHtml.js';
+import { t } from '../i18n/index.js';
 
 export class ProjectCard {
   constructor(project, onClick) {
@@ -15,29 +17,37 @@ export class ProjectCard {
   }
 
   render() {
-    const { title, description, category, year, featured, image_url } = this.project;
+    const { title, description, category, featured, image_url, price, compare_at_price, stock_quantity } = this.project;
 
     const card = document.createElement('div');
     card.className = 'project-card';
     card.dataset.category = category;
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', `View project: ${title}`);
+    card.setAttribute('aria-label', t('products.viewProduct', { title }));
 
-    const bgImg = image_url || CATEGORY_IMAGES[category] || CATEGORY_IMAGES.tech;
+    const bgImg = image_url || CATEGORY_IMAGES[category] || CATEGORY_IMAGES.roof_boxes;
+    const catLabel = (category || '').replace(/_/g, ' ');
+    const fmtPrice = (p) => Number(p).toLocaleString('is-IS') + ' kr.';
+    const hasPrice = price && Number(price) > 0;
+    const onSale = hasPrice && compare_at_price && Number(compare_at_price) > Number(price);
+    const inStock = stock_quantity > 0;
 
     card.innerHTML = `
       <div class="project-card__image">
         <img class="project-card__image-bg"
              src="${escHtml(bgImg)}" alt="${escHtml(title)}" loading="lazy">
         <div class="project-card__image-overlay"></div>
-        <span class="project-card__category project-card__category--${escHtml(category)}">${escHtml(category)}</span>
-        <span class="project-card__year">${year}</span>
+        <span class="project-card__category project-card__category--${escHtml(category)}">${escHtml(catLabel)}</span>
+        ${hasPrice ? `<span class="project-card__price">${onSale ? `<s class="project-card__price--was">${fmtPrice(compare_at_price)}</s> ` : ''}${fmtPrice(price)}</span>` : ''}
         ${featured ? '<span class="project-card__featured-star" title="Featured">★</span>' : ''}
       </div>
       <div class="project-card__body">
         <h3 class="project-card__title">${escHtml(title)}</h3>
         <p class="project-card__desc">${escHtml(description)}</p>
+        ${hasPrice ? `<div class="project-card__footer">
+          <span class="project-card__stock ${inStock ? 'project-card__stock--in' : 'project-card__stock--out'}">${inStock ? t('products.inStock') : t('products.outOfStock')}</span>
+        </div>` : ''}
       </div>
     `;
 
@@ -50,4 +60,3 @@ export class ProjectCard {
     return card;
   }
 }
-

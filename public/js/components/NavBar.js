@@ -1,5 +1,6 @@
 import { isAuthenticated, isAdmin, getUser, logout } from '../services/auth.js';
 import { LoginModal } from './LoginModal.js';
+import { t, getLang, setLang } from '../i18n/index.js';
 
 const avatarPathByName = name => `/assets/avatars/${name || 'avatar-01.svg'}`;
 
@@ -25,27 +26,39 @@ export class NavBar {
     nav.innerHTML = `
       <!-- Left: Brand -->
       <div class="lol-nav__brand">
-        <a href="#/" class="lol-nav__logo" data-route="/" aria-label="Halli Smiley home">
-          <div class="lol-nav__logo-icon" aria-hidden="true">H</div>
-          <div class="lol-nav__logo-text">Halli<br>Smiley</div>
+        <a href="#/" class="lol-nav__logo" data-route="/" aria-label="${t('nav.home_aria')}">
+          <div class="lol-nav__logo-icon" aria-hidden="true">F</div>
+          <div class="lol-nav__logo-text">Ferða<br>Box</div>
         </a>
       </div>
 
       <!-- Center: Navigation links -->
       <div class="lol-nav__center" id="nav-menu">
-        <a href="#/" class="lol-nav__link" data-route="/">Home</a>
-        <a href="#/projects" class="lol-nav__link" data-route="/projects">Projects</a>
-        <a href="#/news" class="lol-nav__link" data-route="/news">News</a>
-        <a href="#/halli" class="lol-nav__link" data-route="/halli">Halli</a>
-        <a href="#/contact" class="lol-nav__link" data-route="/contact">Contact</a>
+        <a href="#/" class="lol-nav__link" data-route="/">${t('nav.home')}</a>
+        <a href="#/projects" class="lol-nav__link" data-route="/projects">${t('nav.products')}</a>
+        <a href="#/news" class="lol-nav__link" data-route="/news">${t('nav.news')}</a>
+        <a href="#/about" class="lol-nav__link" data-route="/about">${t('nav.about')}</a>
+        <a href="#/contact" class="lol-nav__link" data-route="/contact">${t('nav.contact')}</a>
+        <a href="#/cart" class="lol-nav__link lol-nav__cart-link" data-route="/cart"
+           id="nav-cart-link" aria-label="${t('nav.shoppingCart')}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <span class="lol-nav__cart-count" id="nav-cart-count" style="display:none">0</span>
+        </a>
         <a href="#/party" class="lol-nav__link lol-nav__party-link" data-route="/party"
-           id="nav-party-link" style="display:none" aria-label="Halli's 40th Birthday Party">🎂 Party</a>
+           id="nav-party-link" style="display:none" aria-label="Party">Party</a>
       </div>
 
-      <!-- Right: Hamburger + Auth -->
+      <!-- Right: Language toggle + Hamburger + Auth -->
       <div class="lol-nav__right">
+        <div class="lol-nav__lang" id="nav-lang">
+          <button class="lol-nav__lang-btn${getLang() === 'is' ? ' active' : ''}" data-lang="is">IS</button>
+          <button class="lol-nav__lang-btn${getLang() === 'en' ? ' active' : ''}" data-lang="en">EN</button>
+        </div>
         <button class="lol-nav__hamburger" id="nav-hamburger"
-                aria-label="Open navigation menu" aria-expanded="false" aria-controls="nav-menu">
+                aria-label="${t('nav.openMenu')}" aria-expanded="false" aria-controls="nav-menu">
           <span></span><span></span><span></span>
         </button>
         <div class="lol-nav__auth" id="nav-auth"></div>
@@ -57,6 +70,7 @@ export class NavBar {
     this._bindScrollLinks(nav);
     this._bindHomeLinks(nav);
     this._bindHamburger(nav);
+    this._bindLangToggle(nav);
 
     window.addEventListener('authchange', () => {
       this._renderAuth();
@@ -95,7 +109,7 @@ export class NavBar {
       userBtn.innerHTML = `
         <img class="lol-nav__user-avatar" src="${avatarPathByName(user?.avatar)}"
              alt="${user?.username || 'User'}" />
-        <span class="lol-nav__user-name">${user?.displayName || user?.username || 'Account'}</span>
+        <span class="lol-nav__user-name">${user?.displayName || user?.username || t('nav.account')}</span>
         <span class="lol-nav__user-caret" aria-hidden="true">▾</span>
       `;
 
@@ -105,18 +119,18 @@ export class NavBar {
       dropdown.setAttribute('role', 'menu');
       dropdown.innerHTML = `
         <a href="#/profile" class="lol-nav__dropdown-item" role="menuitem" data-route="/profile">
-          Profile
+          ${t('nav.profile')}
         </a>
         ${isAdmin() ? `
         <a href="#/admin" class="lol-nav__dropdown-item" role="menuitem" data-route="/admin">
-          Manage Projects
+          ${t('nav.manageProducts')}
         </a>
         <a href="#/admin/users" class="lol-nav__dropdown-item" role="menuitem" data-route="/admin/users">
-          Manage Users
+          ${t('nav.manageUsers')}
         </a>` : ''}
         <hr class="lol-nav__dropdown-divider"/>
         <button class="lol-nav__dropdown-item lol-nav__dropdown-item--danger" role="menuitem" id="nav-signout-btn" data-testid="nav-signout">
-          Sign Out
+          ${t('nav.signOut')}
         </button>
       `;
 
@@ -151,7 +165,7 @@ export class NavBar {
       const signIn = document.createElement('button');
       signIn.className = 'lol-nav__cta lol-nav__cta--ghost';
       signIn.setAttribute('data-testid', 'nav-signin');
-      signIn.textContent = 'Sign In';
+      signIn.textContent = t('nav.signIn');
       signIn.addEventListener('click', () => this._loginModal.open());
 
       // Sign Up button
@@ -160,7 +174,7 @@ export class NavBar {
       signUp.setAttribute('data-testid', 'nav-signup');
       signUp.href = '#/signup';
       signUp.dataset.route = '/signup';
-      signUp.textContent = 'Sign Up';
+      signUp.textContent = t('nav.signUp');
 
       container.appendChild(signIn);
       container.appendChild(signUp);
@@ -236,6 +250,17 @@ export class NavBar {
       hamburger.setAttribute('aria-expanded', 'false');
       hamburger.setAttribute('aria-label', 'Open navigation menu');
     }
+  }
+
+  _bindLangToggle(nav) {
+    const langBtns = nav.querySelectorAll('.lol-nav__lang-btn');
+    langBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lang = btn.dataset.lang;
+        setLang(lang);
+        // Active state is updated on re-render via languagechange event
+      });
+    });
   }
 
   setActive(route) {

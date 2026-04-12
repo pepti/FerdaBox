@@ -131,7 +131,7 @@ describe('Malformed request handling', () => {
   });
 
   test('body exceeding 100 kb limit is rejected', async () => {
-    const bigBody = JSON.stringify({ title: 'T', description: 'D'.repeat(110 * 1024), category: 'tech', year: 2024 });
+    const bigBody = JSON.stringify({ title: 'T', description: 'D'.repeat(110 * 1024), category: 'roof_boxes', year: 2024 });
 
     const res = await request(app)
       .post('/api/v1/projects')

@@ -304,6 +304,76 @@ const migrations = [
       `CREATE INDEX IF NOT EXISTS idx_news_media_article ON news_media (article_id)`,
     ],
   },
+  {
+    // E-commerce: add price/stock/status to projects, new cart + order tables.
+    name: '017_ecommerce',
+    statements: [
+      // ── Product fields on projects ──────────────────────────────────────────
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS price DECIMAL(10,2) NOT NULL DEFAULT 0`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS compare_at_price DECIMAL(10,2)`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS stock_quantity INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS sku VARCHAR(50)`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'draft'`,
+      `DO $$ BEGIN
+         IF NOT EXISTS (
+           SELECT 1 FROM pg_constraint WHERE conname = 'projects_status_check'
+         ) THEN
+           ALTER TABLE projects ADD CONSTRAINT projects_status_check
+             CHECK (status IN ('draft', 'active', 'sold_out', 'discontinued'));
+         END IF;
+       END $$`,
+      // Drop old category constraint and add new one with e-commerce categories
+      `ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_category_check`,
+      `ALTER TABLE projects ADD CONSTRAINT projects_category_check
+         CHECK (category IN ('carpentry', 'tech', 'roof_boxes', 'roof_racks', 'accessories', 'bundles'))`,
+      `CREATE INDEX IF NOT EXISTS idx_projects_status ON projects (status)`,
+      `CREATE INDEX IF NOT EXISTS idx_projects_sku    ON projects (sku)`,
+
+      // ── Cart items ──────────────────────────────────────────────────────────
+      `CREATE TABLE IF NOT EXISTS cart_items (
+        id          SERIAL      PRIMARY KEY,
+        user_id     TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        project_id  INTEGER     NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        quantity    INTEGER     NOT NULL DEFAULT 1 CHECK (quantity > 0),
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (user_id, project_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items (user_id)`,
+
+      // ── Orders ──────────────────────────────────────────────────────────────
+      `CREATE TABLE IF NOT EXISTS orders (
+        id               SERIAL       PRIMARY KEY,
+        user_id          TEXT         REFERENCES users(id) ON DELETE SET NULL,
+        status           TEXT         NOT NULL DEFAULT 'pending'
+                                      CHECK (status IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')),
+        total_price      DECIMAL(10,2) NOT NULL DEFAULT 0,
+        customer_name    TEXT         NOT NULL,
+        customer_email   TEXT         NOT NULL,
+        customer_phone   TEXT,
+        shipping_address TEXT         NOT NULL,
+        notes            TEXT,
+        created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+        updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders (user_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_orders_status  ON orders (status)`,
+      `DROP TRIGGER IF EXISTS trg_orders_updated_at ON orders`,
+      `CREATE TRIGGER trg_orders_updated_at
+         BEFORE UPDATE ON orders
+         FOR EACH ROW EXECUTE FUNCTION set_updated_at()`,
+
+      // ── Order items ─────────────────────────────────────────────────────────
+      `CREATE TABLE IF NOT EXISTS order_items (
+        id            SERIAL       PRIMARY KEY,
+        order_id      INTEGER      NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        project_id    INTEGER      REFERENCES projects(id) ON DELETE SET NULL,
+        quantity      INTEGER      NOT NULL CHECK (quantity > 0),
+        unit_price    DECIMAL(10,2) NOT NULL,
+        product_title TEXT         NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id)`,
+    ],
+  },
 ];
 
 module.exports = { migrations };

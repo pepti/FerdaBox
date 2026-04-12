@@ -1,4 +1,5 @@
 import { resetPassword } from '../services/auth.js';
+import { t } from '../i18n/index.js';
 
 export class ResetPasswordView {
   constructor(queryString = '') {
@@ -17,9 +18,9 @@ export class ResetPasswordView {
         <div class="auth-container">
           <div class="auth-card">
             <div class="auth-card__icon auth-card__icon--error">✗</div>
-            <h1 class="auth-card__title">Invalid Link</h1>
-            <p class="auth-card__text">This reset link is missing a token. Please request a new one.</p>
-            <a href="#/forgot-password" class="btn btn--primary" data-route="/forgot-password">Request New Link</a>
+            <h1 class="auth-card__title">${t('auth.invalidLink')}</h1>
+            <p class="auth-card__text">${t('auth.invalidLinkDesc')}</p>
+            <a href="#/forgot-password" class="btn btn--primary" data-route="/forgot-password">${t('auth.requestNewLink')}</a>
           </div>
         </div>`;
       return el;
@@ -28,36 +29,36 @@ export class ResetPasswordView {
     el.innerHTML = `
       <div class="auth-container">
         <div class="auth-card">
-          <div class="auth-card__eyebrow">Account Recovery</div>
-          <h1 class="auth-card__title">Reset Password</h1>
-          <p class="auth-card__text">Choose a new password for your account.</p>
+          <div class="auth-card__eyebrow">${t('auth.accountRecovery')}</div>
+          <h1 class="auth-card__title">${t('auth.resetPassword')}</h1>
+          <p class="auth-card__text">${t('auth.resetDesc')}</p>
 
           <form class="auth-form" id="reset-form" novalidate>
             <div class="form-group">
-              <label class="form-label" for="reset-password">New Password <span class="req">*</span></label>
+              <label class="form-label" for="reset-password">${t('auth.newPassword')} <span class="req">*</span></label>
               <input class="form-input" id="reset-password" name="password" type="password"
                      autocomplete="new-password" required/>
               <div class="password-strength" id="reset-pw-strength" aria-live="polite"></div>
               <ul class="pw-requirements">
-                <li id="reset-req-length">At least 8 characters</li>
-                <li id="reset-req-letter">At least 1 letter</li>
-                <li id="reset-req-number">At least 1 number</li>
+                <li id="reset-req-length">${t('auth.passwordMinChars')}</li>
+                <li id="reset-req-letter">${t('auth.passwordMinLetter')}</li>
+                <li id="reset-req-number">${t('auth.passwordMinNumber')}</li>
               </ul>
             </div>
             <div class="form-group">
-              <label class="form-label" for="reset-confirm">Confirm Password <span class="req">*</span></label>
+              <label class="form-label" for="reset-confirm">${t('auth.confirmPassword')} <span class="req">*</span></label>
               <input class="form-input" id="reset-confirm" name="confirm" type="password"
                      autocomplete="new-password" required/>
               <p class="form-field-status" id="reset-confirm-status"></p>
             </div>
             <p class="form-error" id="reset-error" aria-live="polite"></p>
-            <button class="btn btn--primary btn--full" type="submit" id="reset-btn">Set New Password</button>
+            <button class="btn btn--primary btn--full" type="submit" id="reset-btn">${t('auth.setNewPassword')}</button>
           </form>
 
           <div class="auth-success" id="reset-success" hidden>
             <div class="auth-success__icon">✓</div>
-            <p class="auth-success__text">Your password has been reset successfully.</p>
-            <a href="#/login" class="btn btn--primary" data-route="/login">Sign In</a>
+            <p class="auth-success__text">${t('auth.resetSuccess')}</p>
+            <a href="#/login" class="btn btn--primary" data-route="/login">${t('auth.signIn')}</a>
           </div>
         </div>
       </div>
@@ -97,13 +98,13 @@ export class ResetPasswordView {
       const conf   = form.confirm.value;
 
       errEl.textContent = '';
-      if (pw.length < 8)         { errEl.textContent = 'Password must be at least 8 characters.'; return; }
-      if (!/[A-Za-z]/.test(pw))  { errEl.textContent = 'Password must contain at least 1 letter.'; return; }
-      if (!/\d/.test(pw))        { errEl.textContent = 'Password must contain at least 1 number.'; return; }
+      if (pw.length < 8)         { errEl.textContent = t('auth.passwordMinChars'); return; }
+      if (!/[A-Za-z]/.test(pw))  { errEl.textContent = t('auth.passwordMinLetter'); return; }
+      if (!/\d/.test(pw))        { errEl.textContent = t('auth.passwordMinNumber'); return; }
       if (pw !== conf)            { errEl.textContent = 'Passwords do not match.'; return; }
 
       btn.disabled = true;
-      btn.textContent = 'Resetting…';
+      btn.textContent = t('common.loading');
 
       try {
         await resetPassword(token, pw);
@@ -112,7 +113,7 @@ export class ResetPasswordView {
       } catch (err) {
         errEl.textContent = err.message;
         btn.disabled = false;
-        btn.textContent = 'Set New Password';
+        btn.textContent = t('auth.setNewPassword');
       }
     });
 

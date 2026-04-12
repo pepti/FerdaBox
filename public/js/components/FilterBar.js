@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 export class FilterBar {
   constructor(onChange) {
     this.onChange = onChange;
@@ -9,9 +11,11 @@ export class FilterBar {
     bar.className = 'filter-bar';
 
     const filters = [
-      { key: 'all',       label: 'All Projects' },
-      { key: 'carpentry', label: 'Carpentry' },
-      { key: 'tech',      label: 'Tech' },
+      { key: 'all',         label: t('products.allProducts') },
+      { key: 'roof_boxes',  label: t('products.roofBoxes') },
+      { key: 'roof_racks',  label: t('products.roofRacks') },
+      { key: 'accessories', label: t('products.accessories') },
+      { key: 'bundles',     label: t('products.bundles') },
     ];
 
     filters.forEach(({ key, label }) => {

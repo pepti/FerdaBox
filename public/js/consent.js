@@ -1,5 +1,5 @@
 /**
- * Cookie Consent — halliprojects.is
+ * Cookie Consent — ferdabox.is
  *
  * Shows a consent banner on first visit.
  * Analytics are only loaded after the user explicitly accepts.
@@ -14,6 +14,38 @@
   'use strict';
 
   var STORAGE_KEY = 'cookie_consent';
+
+  // ── Inline i18n for consent banner (non-module script) ──────────────────
+  var _consentStrings = {
+    is: {
+      message: 'Þessi síða notar vafrakökur til greiningar. Sjá',
+      privacyLink: 'persónuverndarstefnu',
+      question: 'Samþykkir þú greiningarkökur?',
+      accept: 'Samþykkja',
+      decline: 'Hafna',
+    },
+    en: {
+      message: 'This site uses cookies for analytics. See our',
+      privacyLink: 'Privacy Policy',
+      question: 'Do you consent to analytics cookies?',
+      accept: 'Accept',
+      decline: 'Decline',
+    },
+  };
+
+  function getLang() {
+    try {
+      return localStorage.getItem('ferdabox_lang') || 'is';
+    } catch (_) {
+      return 'is';
+    }
+  }
+
+  function ct(key) {
+    var lang = getLang();
+    var strings = _consentStrings[lang] || _consentStrings.is;
+    return strings[key] || _consentStrings.is[key] || key;
+  }
 
   function getConsent() {
     try {
@@ -86,15 +118,15 @@
     var text = document.createElement('p');
     text.style.cssText = 'margin:0;flex:1 1 300px';
     text.innerHTML =
-      'This site uses cookies for analytics. See our ' +
-      '<a href="#/privacy" style="color:#a0a090;text-decoration:underline">Privacy Policy</a>. ' +
-      'Do you consent to analytics cookies?';
+      ct('message') + ' ' +
+      '<a href="#/privacy" style="color:#a0a090;text-decoration:underline">' + ct('privacyLink') + '</a>. ' +
+      ct('question');
 
     var actions = document.createElement('div');
     actions.style.cssText = 'display:flex;gap:0.5rem;flex-shrink:0';
 
     var acceptBtn = document.createElement('button');
-    acceptBtn.textContent = 'Accept';
+    acceptBtn.textContent = ct('accept');
     acceptBtn.style.cssText = [
       'padding:0.4rem 1rem',
       'background:#c8b882',
@@ -107,7 +139,7 @@
     ].join(';');
 
     var declineBtn = document.createElement('button');
-    declineBtn.textContent = 'Decline';
+    declineBtn.textContent = ct('decline');
     declineBtn.style.cssText = [
       'padding:0.4rem 1rem',
       'background:transparent',

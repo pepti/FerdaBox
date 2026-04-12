@@ -9,50 +9,34 @@ require('dotenv').config();
 const db = require('../config/database');
 
 const LAUNCH_ARTICLE = {
-  title:    "We're Live! Welcome to Halli Smiley",
-  slug:     'were-live-welcome',
+  title:    'Ferða Box er komin á netið!',
+  slug:     'ferdabox-opnun',
   category: 'announcement',
-  summary:  "After months of building, the portfolio is finally live. Here's the story behind it — what it is, how it's built, and what's coming next.",
-  body: `<p>Right. So it's actually live. I keep refreshing the page half-expecting it to explode, but somehow it just... works. Welcome to <strong>Halli Smiley</strong> — my little corner of the internet where carpentry meets code and both get taken equally seriously.</p>
+  summary:  'Við erum stolt af því að kynna Ferða Box — nýja vefverslun fyrir ferðakassa, þakgrindur og ferðabúnað á Íslandi.',
+  body: `<p>Velkomin á <strong>Ferða Box</strong> — nýja vefverslunina okkar þar sem þú finnur úrvals ferðakassa og þakgrindur fyrir bílinn þinn.</p>
 
-<h2>Why a Portfolio Site?</h2>
+<h2>Af hverju Ferða Box?</h2>
 
-<p>Honestly? I got tired of explaining what I do at dinner parties. "So you're a carpenter?" Yes. "But you also write software?" Also yes. "At the same time?" Kind of. The confusion was real. So I built this thing partly to showcase the work and partly so I can hand people a URL and walk away.</p>
+<p>Við vitum að íslenskar aðstæður krefjast búnaðar sem þolir allt. Hvassviðri, snjó, malarvegi og langa ferðir á hálendinu. Þess vegna bjóðum við aðeins upp á gæðavörur sem standast kröfur íslenskra ferðamanna.</p>
 
-<p>I've been doing carpentry for over twenty years — hand tools, power tools, joinery, timber framing, the lot. And somewhere along the way I got seriously into programming. Not because I had to, but because the problem-solving itch is the same. Fitting a mortise-and-tenon joint that closes without force, or debugging a session management edge case that only triggers under specific race conditions — same brain, different materials.</p>
-
-<h2>How It's Built</h2>
-
-<p>This site is <strong>Node.js on the backend, vanilla JavaScript on the frontend</strong>. No React. No Next.js. No framework making decisions for me. Just a router I wrote myself, views that render to the DOM the old-fashioned way, and a PostgreSQL database doing exactly what databases are supposed to do.</p>
-
-<p>The authentication is Lucia v3 with session cookies — proper httpOnly, SameSite, the works. There's a full CSRF protection layer, rate limiting, input sanitization, Prometheus metrics, structured logging with Pino, and a circuit breaker on the database connection. I may have gone slightly overboard on the observability for a portfolio site. I regret nothing.</p>
-
-<p>The frontend is a single-page app with hash-based routing. It loads fast, works without JavaScript for the static bits, and the CSS is hand-written with CSS variables for a design system that doesn't fight me. The dark theme is intentional — I spend most of my day in sawdust or terminal windows, and both look better in dark mode.</p>
-
-<h2>What's On Here</h2>
-
-<p>A few things worth knowing about:</p>
+<h2>Hvað er í boði?</h2>
 
 <ul>
-  <li><strong>Project Gallery</strong> — Both carpentry and tech projects in one place. Filter by discipline. Each project has its own page with photos, tools used, and the story behind it.</li>
-  <li><strong>User Accounts</strong> — You can create an account, pick an avatar, and save favourite projects. Accounts are real — email verification, password reset, the full thing.</li>
-  <li><strong>The Party Page</strong> — I'm turning 40 this year. There's a birthday party, and I built a whole invite and RSVP system for it. Because of course I did.</li>
-  <li><strong>This News Feed</strong> — Where I'll post about projects as they happen, write-ups on techniques, and the occasional rant about wood movement or JavaScript quirks.</li>
+  <li><strong>Ferðakassar</strong> — Frá 300L til 600L, straumlínulöguð hönnun, tvíhliða opnun og fjölpunkta læsing.</li>
+  <li><strong>Þakgrindur</strong> — Alhliða grindur sem passa á flestar bílategundir, auðveld uppsetning án verkfæra.</li>
+  <li><strong>Fylgihlutir</strong> — Net, bönd og annað sem tryggir öryggi farmsins.</li>
+  <li><strong>Pakkatilboð</strong> — Fullbúin sett sem spara þér peninga og fyrirhöfn.</li>
 </ul>
 
-<h2>The First Real Project: Stofan Bakhús</h2>
+<h2>5 ára ábyrgð</h2>
 
-<p>The first carpentry project up on the site is <strong>Stofan Bakhús</strong> — a living-room-to-garden outbuilding conversion I did a few years back. It's the project I'm most proud of from that era: proper timber frame, hand-cut joints, built to last decades. The photos don't do it justice but they're the best I've got.</p>
+<p>Allar vörur okkar eru með 5 ára ábyrgð gegn framleiðslugöllum. Við stöndum á bak við gæði varanna okkar.</p>
 
-<p>More projects are coming. I've got a backlog of work to document — both carpentry and code — and I'll be adding them as I find time between the actual work.</p>
+<h2>Hvað er framundan?</h2>
 
-<h2>What's Next</h2>
+<p>Við erum stöðugt að bæta við nýjum vörum og þjónustu. Fylgstu með fréttum okkar til að vera uppfærð/ur um nýjungar, tilboð og ferðaráð.</p>
 
-<p>Short term: more projects, more write-ups, a proper about page. Medium term: I want to add a comments system and maybe some kind of workshop log where I track active builds in real time. Long term: who knows. The site is a living thing and I'll build it like I build furniture — one piece at a time, fitted properly before moving on.</p>
-
-<p>If you made it this far: thanks for reading. Create an account if you want to follow along, or just poke around the projects. Either way, I'm glad you're here.</p>
-
-<p>— Halli</p>`,
+<p>— Ferða Box teymið</p>`,
 };
 
 async function seedNews() {

@@ -1,4 +1,5 @@
 import { verifyEmail } from '../services/auth.js';
+import { t } from '../i18n/index.js';
 
 export class VerifyEmailView {
   constructor(queryString = '') {
@@ -12,8 +13,8 @@ export class VerifyEmailView {
       <div class="auth-container">
         <div class="auth-card">
           <div class="auth-card__icon" id="verify-icon">⏳</div>
-          <h1 class="auth-card__title" id="verify-title">Verifying Email</h1>
-          <p class="auth-card__text" id="verify-text">Please wait…</p>
+          <h1 class="auth-card__title" id="verify-title">${t('auth.verifyingEmail')}</h1>
+          <p class="auth-card__text" id="verify-text">${t('auth.pleaseWait')}</p>
           <div id="verify-actions"></div>
         </div>
       </div>
@@ -24,15 +25,15 @@ export class VerifyEmailView {
     const token  = params.get('token');
 
     if (!token) {
-      this._setResult(el, false, 'No verification token found. Please check your email link.');
+      this._setResult(el, false, t('auth.noToken'));
       return el;
     }
 
     try {
       await verifyEmail(token);
-      this._setResult(el, true, 'Your email has been verified! You can now sign in.');
+      this._setResult(el, true, t('auth.emailVerified'));
     } catch (err) {
-      this._setResult(el, false, 'Verification failed or you are already logged in');
+      this._setResult(el, false, t('auth.verificationFailed'));
     }
 
     return el;
@@ -40,16 +41,16 @@ export class VerifyEmailView {
 
   _setResult(el, success, message) {
     el.querySelector('#verify-icon').textContent  = success ? '✓' : '✗';
-    el.querySelector('#verify-title').textContent = success ? 'Email Verified!' : 'Verification Failed';
+    el.querySelector('#verify-title').textContent = success ? t('auth.emailVerifiedTitle') : t('auth.verificationFailedTitle');
     el.querySelector('#verify-text').textContent  = message;
 
     const actions = el.querySelector('#verify-actions');
     if (success) {
-      actions.innerHTML = `<a href="#/login" class="btn btn--primary" data-route="/login">Sign In</a>`;
+      actions.innerHTML = `<a href="#/login" class="btn btn--primary" data-route="/login">${t('auth.signIn')}</a>`;
     } else {
       actions.innerHTML = `
-        <a href="#/signup" class="btn btn--outline" data-route="/signup">Sign Up Again</a>
-        <a href="#/" class="btn btn--ghost" data-route="/" style="margin-left:8px">Go Home</a>
+        <a href="#/signup" class="btn btn--outline" data-route="/signup">${t('auth.signUpAgain')}</a>
+        <a href="#/" class="btn btn--ghost" data-route="/" style="margin-left:8px">${t('auth.goHome')}</a>
       `;
     }
 

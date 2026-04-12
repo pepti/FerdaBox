@@ -3,65 +3,70 @@
 
 import { isAdmin, hasRole, getCSRFToken } from '../services/auth.js';
 import { escHtml } from '../utils/escHtml.js';
+import { t } from '../i18n/index.js';
 
 
-// ── Project categories (champion-selector style) ──────────────────────────
-const CATEGORIES = [
-  {
-    id: 'tech', label: 'Tech', type: 'Full-Stack Applications',
-    img: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=800&fit=crop&q=80&auto=format',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-             <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-           </svg>`,
-  },
-  {
-    id: 'carpentry', label: 'Carpentry', type: 'Joinery & Timber Work',
-    img: '/assets/projects/arnarhraun/img_1795.jpg',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-             <polyline points="9 22 9 12 15 12 15 22"/>
-           </svg>`,
-  },
-  {
-    id: 'remodelling', label: 'Remodelling', type: 'Interior Renovation',
-    img: '/assets/projects/arnarhraun/img_1071.jpg',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-           </svg>`,
-  },
-  {
-    id: 'tools', label: 'Tools', type: 'Workshop & Dev Tooling',
-    img: 'https://images.unsplash.com/photo-1557054055-72388d9f6141?w=800&h=800&fit=crop&q=80&auto=format',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-             <circle cx="12" cy="12" r="3"/>
-             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-           </svg>`,
-  },
-];
+// ── Product categories (built dynamically for i18n) ────────────────────
+function getCategories() {
+  return [
+    {
+      id: 'roof_boxes', label: t('home.catRoofBoxes'), type: t('home.catTypeRoofBoxes'),
+      img: '/assets/products/category-roofbox.jpg',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+               <rect x="2" y="7" width="20" height="10" rx="2"/><line x1="6" y1="17" x2="6" y2="20"/><line x1="18" y1="17" x2="18" y2="20"/>
+             </svg>`,
+    },
+    {
+      id: 'roof_racks', label: t('home.catRoofRacks'), type: t('home.catTypeRoofRacks'),
+      img: '/assets/products/category-roofrack.jpg',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+               <line x1="2" y1="8" x2="22" y2="8"/><line x1="2" y1="16" x2="22" y2="16"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/>
+             </svg>`,
+    },
+    {
+      id: 'accessories', label: t('home.catAccessories'), type: t('home.catTypeAccessories'),
+      img: '/assets/products/cargo-net.jpg',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+             </svg>`,
+    },
+    {
+      id: 'bundles', label: t('home.catBundles'), type: t('home.catTypeBundles'),
+      img: '/assets/products/starter-bundle.jpg',
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+               <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/>
+             </svg>`,
+    },
+  ];
+}
 
 // ── Default skills content — used as fallback if API is unavailable ───────
-const DEFAULT_SKILLS_CONTENT = {
-  eyebrow:     'Two Decades of',
-  title:       'Craft\n& Code',
-  description: 'Twenty years of carpentry precision — reading grain, cutting to the line, fitting without gaps — applied to every line of code. The same principles that make a mortise-and-tenon joint last a century make software maintainable.',
-  items: [
-    { label: 'Languages', value: 'JS · Python · SQL' },
-    { label: 'Backend',   value: 'Node · Express · REST' },
-    { label: 'Database',  value: 'PostgreSQL · Redis' },
-    { label: 'Carpentry', value: '20+ yrs hand & power tools' },
-    { label: 'Cloud',     value: 'Azure · Railway' },
-    { label: 'Security',  value: 'OWASP · OAuth 2.0 · RS256' },
-  ],
-  image_url: 'https://images.unsplash.com/photo-1564603527476-8837eac5a22f?w=700&h=900&fit=crop&q=80&auto=format',
-};
+function getDefaultSkillsContent() {
+  return {
+    eyebrow:     t('home.skillsEyebrow'),
+    title:       t('home.skillsTitle'),
+    description: t('home.skillsDesc'),
+    items: [
+      { label: t('home.skillCapacity'),    value: t('home.skillCapacityVal') },
+      { label: t('home.skillMount'),       value: t('home.skillMountVal') },
+      { label: t('home.skillMaterials'),   value: t('home.skillMaterialsVal') },
+      { label: t('home.skillAero'),        value: t('home.skillAeroVal') },
+      { label: t('home.skillSecurity'),    value: t('home.skillSecurityVal') },
+      { label: t('home.skillWarranty'),    value: t('home.skillWarrantyVal') },
+    ],
+    image_url: '/assets/products/b1.JPG',
+  };
+}
 
-// ── Stats ─────────────────────────────────────────────────────────────────
-const STATS = [
-  { num: '22+', label: 'Years Carpentry Experience' },
-  { num: '15+', label: 'Years Coding Experience' },
-  { num: '6+',  label: 'Years Tech Management' },
-  { num: '40',  label: 'Years of creating all kinds of trouble' },
-];
+// ── Stats (built dynamically for i18n) ───────────────────────────────────
+function getStats() {
+  return [
+    { num: t('home.stat1'),  label: t('home.stat1Label') },
+    { num: t('home.stat2'),  label: t('home.stat2Label') },
+    { num: t('home.stat3'),  label: t('home.stat3Label') },
+    { num: t('home.stat4'),  label: t('home.stat4Label') },
+  ];
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 export class HomeView {
@@ -94,41 +99,36 @@ export class HomeView {
     return view;
   }
 
-  // ── Load skills content from API ───────────────────────────────────────
+  // ── Load skills content — always use i18n translations ──────────────────
   async _loadContent() {
-    try {
-      const res = await fetch('/api/v1/content/home_skills');
-      if (res.ok) {
-        this._content = await res.json();
-        return;
-      }
-    } catch { /* network error — fall through to default */ }
-    this._content = { ...DEFAULT_SKILLS_CONTENT };
+    // Use i18n-driven content so it responds to language switching.
+    // The DB-stored content (site_content.home_skills) is ignored in favor
+    // of the translation files which support IS/EN switching.
+    this._content = { ...getDefaultSkillsContent() };
   }
 
   // ── SECTION 1: Hero ────────────────────────────────────────────────────
   _hero() {
     return `
     <section class="lol-hero" aria-label="Introduction">
-      <video class="lol-hero__bg" autoplay muted loop playsinline preload="auto" aria-hidden="true">
-        <!-- TODO (production): move this video to a CDN to avoid serving large assets through Node.js -->
-        <source src="/assets/videos/waterfall-bk-v1.mp4" type="video/mp4">
+      <video class="lol-hero__video" autoplay muted loop playsinline aria-hidden="true">
+        <source src="/assets/videos/hero-bg.mp4" type="video/mp4">
       </video>
       <div class="lol-hero__overlay" aria-hidden="true"></div>
 
       <div class="lol-hero__content">
         <h1 class="lol-hero__title">
-          <span>Halli</span>
-          <span class="lol-hero__title-second">Smiley</span>
+          <span>${t('home.heroTitle1')}</span>
+          <span class="lol-hero__title-second">${t('home.heroTitle2')}</span>
         </h1>
         <p class="lol-hero__subtitle">
-          Carpenter &amp; Computer Scientist — Building with wood &amp; code
+          ${t('home.heroSubtitle')}
         </p>
-        <a href="#/projects" class="lol-hero__cta">View Projects</a>
+        <a href="#/projects" class="lol-hero__cta">${t('home.heroCta')}</a>
       </div>
 
       <div class="lol-hero__scroll" aria-hidden="true">
-        <span>Scroll</span>
+        <span>${t('home.scroll')}</span>
         <div class="lol-hero__scroll-line"></div>
       </div>
     </section>`;
@@ -180,9 +180,9 @@ export class HomeView {
     <section class="lol-news" id="news" aria-label="Latest news">
       <div class="lol-news__inner">
         <div class="lol-news__header">
-          <a href="#/news" class="lol-news__heading-link"><h2 class="lol-news__heading">News</h2></a>
+          <a href="#/news" class="lol-news__heading-link"><h2 class="lol-news__heading">${t('home.newsHeading')}</h2></a>
           <a href="#/news" class="lol-news__view-all">
-            View All
+            ${t('home.newsViewAll')}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
               <polyline points="9 18 15 12 9 6"/>
@@ -196,9 +196,10 @@ export class HomeView {
 
   // ── SECTION 4: Projects — champion-selector style ──────────────────────
   _projects() {
-    const first = CATEGORIES[0];
+    const categories = getCategories();
+    const first = categories[0];
 
-    const catIcons = CATEGORIES.map((c, i) => `
+    const catIcons = categories.map((c, i) => `
       <div class="lol-projects__cat${i === 0 ? ' active' : ''}"
            data-cat="${c.id}" role="tab" tabindex="${i === 0 ? '0' : '-1'}"
            aria-selected="${i === 0 ? 'true' : 'false'}" aria-label="${c.label}">
@@ -212,15 +213,14 @@ export class HomeView {
       <div class="lol-projects__inner">
 
         <div class="lol-projects__left">
-          <p class="lol-projects__eyebrow">Browse by</p>
-          <h2 class="lol-projects__heading">Discipline</h2>
+          <p class="lol-projects__eyebrow">${t('home.browseBy')}</p>
+          <h2 class="lol-projects__heading">${t('home.category')}</h2>
           <p class="lol-projects__desc">
-            From precision timber frames and hand-cut joinery to full-stack
-            web applications — every project is built to last.
+            ${t('home.categoryDesc')}
           </p>
           <div class="lol-projects__btns">
-            <a href="#/projects" class="lol-btn--gold">View All Projects</a>
-            <a href="#/" class="lol-btn--teal" id="contact-btn">Get in Touch</a>
+            <a href="#/projects" class="lol-btn--gold">${t('home.shopAll')}</a>
+            <a href="#/" class="lol-btn--teal" id="contact-btn">${t('home.getInTouch')}</a>
           </div>
           <div class="lol-projects__categories" role="tablist" aria-label="Project disciplines">
             ${catIcons}
@@ -282,7 +282,8 @@ export class HomeView {
 
   // ── SECTION 6: Stats ──────────────────────────────────────────────────
   _stats() {
-    const items = STATS.map(s => `
+    const stats = getStats();
+    const items = stats.map(s => `
       <div class="lol-stats__item">
         <div class="lol-stats__num" aria-label="${s.num} ${s.label}">${s.num}</div>
         <div class="lol-stats__label" aria-hidden="true">${s.label}</div>
@@ -301,9 +302,9 @@ export class HomeView {
     <section class="lol-contact" id="contact" aria-label="Contact">
       <div class="lol-contact__bg" aria-hidden="true"></div>
       <div class="lol-contact__inner">
-        <p class="lol-contact__eyebrow">Let's build something</p>
+        <p class="lol-contact__eyebrow">${t('home.contactEyebrow')}</p>
         <h2 class="lol-contact__title">
-          Get in<br>Touch
+          ${t('home.contactTitle').replace(/\n/g, '<br>')}
         </h2>
         <form class="contact-form" id="contact-form" novalidate aria-label="Contact form">
           <!-- Honeypot — hidden from real users, bots fill it in -->
@@ -312,24 +313,24 @@ export class HomeView {
                  style="position:absolute;left:-9999px;opacity:0;height:0;width:0;pointer-events:none;" />
           <div class="contact-form__row">
             <div class="contact-form__field">
-              <label for="contact-name" class="contact-form__label">Name <span aria-hidden="true" class="required-mark">*</span></label>
+              <label for="contact-name" class="contact-form__label">${t('contact.name')} <span aria-hidden="true" class="required-mark">${t('contact.required')}</span></label>
               <input type="text" id="contact-name" name="name" class="contact-form__input"
-                     required autocomplete="name" placeholder="Your name" maxlength="100" />
+                     required autocomplete="name" placeholder="${t('contact.namePlaceholder')}" maxlength="100" />
             </div>
             <div class="contact-form__field">
-              <label for="contact-email" class="contact-form__label">Email <span aria-hidden="true" class="required-mark">*</span></label>
+              <label for="contact-email" class="contact-form__label">${t('contact.email')} <span aria-hidden="true" class="required-mark">${t('contact.required')}</span></label>
               <input type="email" id="contact-email" name="email" class="contact-form__input"
-                     required autocomplete="email" placeholder="your@email.com" maxlength="200" />
+                     required autocomplete="email" placeholder="${t('contact.emailPlaceholder')}" maxlength="200" />
             </div>
           </div>
           <div class="contact-form__field">
-            <label for="contact-message" class="contact-form__label">Message <span aria-hidden="true" class="required-mark">*</span></label>
+            <label for="contact-message" class="contact-form__label">${t('contact.message')} <span aria-hidden="true" class="required-mark">${t('contact.required')}</span></label>
             <textarea id="contact-message" name="message" class="contact-form__textarea"
-                      required rows="5" placeholder="What is on your mind?" maxlength="2000"></textarea>
+                      required rows="5" placeholder="${t('contact.messagePlaceholder')}" maxlength="2000"></textarea>
           </div>
           <div aria-live="polite" id="contact-status" class="contact-form__status"></div>
           <button type="submit" class="lol-contact__btn contact-form__submit" id="contact-submit">
-            Send Message
+            ${t('contact.send')}
           </button>
         </form>
 
@@ -343,25 +344,13 @@ export class HomeView {
     <footer class="lol-footer">
 
       <nav class="lol-footer__top" aria-label="Footer navigation">
-        <a href="#/halli"    class="lol-footer__nav-link">Halli</a>
-        <a href="#/projects" class="lol-footer__nav-link">Projects</a>
-        <a href="https://github.com/pepti/hallismiley" target="_blank" rel="noopener noreferrer" class="lol-footer__nav-link">GitHub</a>
-        <a href="https://www.linkedin.com/in/halliv/" target="_blank" rel="noopener noreferrer" class="lol-footer__nav-link">LinkedIn</a>
+        <a href="#/projects" class="lol-footer__nav-link">${t('nav.products')}</a>
+        <a href="#/news" class="lol-footer__nav-link">${t('nav.news')}</a>
+        <a href="#/about" class="lol-footer__nav-link">${t('nav.about')}</a>
+        <a href="#/contact" class="lol-footer__nav-link">${t('nav.contact')}</a>
       </nav>
 
       <div class="lol-footer__social">
-        <a href="https://github.com/pepti/hallismiley" target="_blank" rel="noopener noreferrer"
-           class="lol-footer__social-icon" aria-label="GitHub profile">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
-        </a>
-        <a href="https://www.linkedin.com/in/halliv/" target="_blank" rel="noopener noreferrer"
-           class="lol-footer__social-icon" aria-label="LinkedIn profile">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-          </svg>
-        </a>
         <a id="footer-email-icon" href="#contact"
            class="lol-footer__social-icon" aria-label="Send email">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -373,42 +362,31 @@ export class HomeView {
       </div>
 
       <div class="lol-footer__brand">
-        <div class="lol-footer__logo">Halli Smiley</div>
+        <div class="lol-footer__logo">${t('home.footerBrand')}</div>
         <p class="lol-footer__copy">
-          &copy; ${new Date().getFullYear()} Halli Smiley. A portfolio of nothing and everything.
+          &copy; ${new Date().getFullYear()} ${t('home.footerCopy')}
         </p>
         <nav class="lol-footer__legal" aria-label="Legal navigation">
-          <a href="#/privacy" class="lol-footer__legal-link">Privacy Policy</a>
-          <a href="#/terms"   class="lol-footer__legal-link">Terms of Service</a>
+          <a href="#/privacy" class="lol-footer__legal-link">${t('home.privacyPolicy')}</a>
+          <a href="#/terms"   class="lol-footer__legal-link">${t('home.termsOfService')}</a>
         </nav>
       </div>
 
     </footer>`;
   }
 
-  // ── Footer email icon — obfuscated mailto built from JS parts ────────
+  // ── Footer email icon ────────────────────────────────────────────────
   _initFooterLinks(view) {
     const icon = view.querySelector('#footer-email-icon');
-    if (icon) {
-      const parts = ['halli', 'hallismiley', 'is'];
-      icon.href = `mailto:${parts[0]}@${parts[1]}.${parts[2]}`;
-    }
+    if (icon) icon.href = 'mailto:info@ferdabox.is';
   }
 
-  // ── Hero video — ensure autoplay fires after mount ────────────────────
-  _initHeroVideo(view) {
-    const video = view.querySelector('.lol-hero__bg');
-    if (!video) return;
-    requestAnimationFrame(() => {
-      video.play().catch(() => {
-        const resume = () => { video.play().catch(() => {}); document.removeEventListener('click', resume); };
-        document.addEventListener('click', resume, { once: true });
-      });
-    });
-  }
+  // ── Hero — no video, just static ──────────────────────────────────────
+  _initHeroVideo() { /* no-op — video removed */ }
 
   // ── Projects section — category switching logic ────────────────────────
   _initProjects(view) {
+    const categories = getCategories();
     const cats    = view.querySelectorAll('.lol-projects__cat');
     const img     = view.querySelector('#projects-preview-img');
     const title   = view.querySelector('#projects-preview-title');
@@ -426,7 +404,7 @@ export class HomeView {
     cats.forEach(cat => {
       const activate = () => {
         const id   = cat.dataset.cat;
-        const data = CATEGORIES.find(c => c.id === id);
+        const data = categories.find(c => c.id === id);
         if (!data) return;
 
         cats.forEach(c => {
@@ -472,7 +450,7 @@ export class HomeView {
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
       </svg>
-      Edit Section`;
+      ${t('common.editSection')}`;
     section.style.position = 'relative';
     section.appendChild(editBtn);
 
@@ -482,8 +460,8 @@ export class HomeView {
     controls.id         = 'home-edit-bar';
     controls.setAttribute('data-testid', 'edit-controls');
     controls.innerHTML  = `
-      <button type="button" class="lol-skills__save-btn" id="home-edit-save" data-testid="edit-save-btn">Save Changes</button>
-      <button type="button" class="lol-skills__cancel-btn" id="home-edit-cancel" data-testid="edit-cancel-btn">Cancel</button>
+      <button type="button" class="lol-skills__save-btn" id="home-edit-save" data-testid="edit-save-btn">${t('common.saveChanges')}</button>
+      <button type="button" class="lol-skills__cancel-btn" id="home-edit-cancel" data-testid="edit-cancel-btn">${t('common.cancel')}</button>
       <span   class="lol-skills__edit-status" aria-live="polite"></span>`;
     section.appendChild(controls);
 
@@ -525,7 +503,7 @@ export class HomeView {
         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
         <circle cx="12" cy="13" r="4"/>
       </svg>
-      <span>Change Image</span>
+      <span>${t('common.changeImage')}</span>
       <input type="file" accept="image/jpeg,image/png,image/webp"
              class="lol-img-file-input" aria-label="Upload replacement image">`;
     imgWrap.appendChild(overlay);
@@ -569,7 +547,7 @@ export class HomeView {
 
   async _uploadImage(file, section, controls) {
     const status = controls.querySelector('.lol-skills__edit-status');
-    status.textContent = 'Uploading…';
+    status.textContent = t('common.uploading');
 
     try {
       const token = await getCSRFToken();
@@ -587,15 +565,15 @@ export class HomeView {
       const { image_url } = await res.json();
       section.querySelector('.lol-skills__img').src = image_url;
       this._content = { ...this._content, image_url };
-      status.textContent = 'Image updated.';
+      status.textContent = t('common.imageUpdated');
     } catch (err) {
-      status.textContent = `Upload error: ${err.message}`;
+      status.textContent = `${t('common.uploadError')} ${err.message}`;
     }
   }
 
   async _saveEdit(section, controls) {
     const status = controls.querySelector('.lol-skills__edit-status');
-    status.textContent = 'Saving…';
+    status.textContent = t('common.saving');
 
     // Collect text from DOM
     const eyebrow = section.querySelector('[data-field="eyebrow"]')?.innerText.trim() ?? this._content.eyebrow;
@@ -626,10 +604,10 @@ export class HomeView {
       if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
 
       this._content  = await res.json();
-      status.textContent = 'Saved!';
+      status.textContent = t('common.saved');
       setTimeout(() => { status.textContent = ''; }, 2500);
     } catch (err) {
-      status.textContent = `Error: ${err.message}`;
+      status.textContent = `${t('common.error')}: ${err.message}`;
     }
   }
 
@@ -649,12 +627,12 @@ export class HomeView {
 
       if (!name || !email || !message) {
         status.className = 'contact-form__status contact-form__status--error';
-        status.textContent = 'Please fill in all required fields.';
+        status.textContent = t('contact.fillRequired');
         return;
       }
 
       submit.disabled = true;
-      submit.textContent = 'Sending…';
+      submit.textContent = t('contact.sending');
       status.className = 'contact-form__status';
       status.textContent = '';
 
@@ -667,18 +645,18 @@ export class HomeView {
 
         if (res.ok) {
           status.className = 'contact-form__status contact-form__status--success';
-          status.textContent = 'Message sent — I\'ll be in touch soon.';
+          status.textContent = t('contact.sent');
           form.reset();
         } else {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || 'Something went wrong.');
+          throw new Error(data.error || t('contact.error'));
         }
       } catch (err) {
         status.className = 'contact-form__status contact-form__status--error';
         status.textContent = err.message;
       } finally {
         submit.disabled = false;
-        submit.textContent = 'Send Message';
+        submit.textContent = t('contact.send');
       }
     });
   }

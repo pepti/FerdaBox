@@ -218,10 +218,10 @@
 }
 
 .hb-image-break--craft {
-  background-image: url('https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1600&h=600&fit=crop&q=80');
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
 }
 .hb-image-break--life {
-  background-image: url('https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1600&h=600&fit=crop&q=80');
+  background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
 }
 
 /* ── Highlights ─────────────────────────────────────────────────────────── */

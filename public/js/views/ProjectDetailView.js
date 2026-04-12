@@ -4,10 +4,12 @@ import { Lightbox }   from '../components/Lightbox.js';
 import { getUser }    from '../services/auth.js';
 
 const CATEGORY_HERO = {
-  tech:        'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=1920&h=1080&fit=crop&q=80&auto=format',
-  carpentry:   'https://images.unsplash.com/photo-1416339306562-f3d12fefd36f?w=1920&h=1080&fit=crop&q=80&auto=format',
-  remodelling: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1920&h=1080&fit=crop&q=80&auto=format',
-  tools:       'https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=1920&h=1080&fit=crop&q=80&auto=format',
+  roof_boxes:   '/assets/products/hero-roofbox.jpg',
+  roof_racks:   '/assets/products/cross-bars.jpg',
+  accessories:  '/assets/products/cargo-net.jpg',
+  bundles:      '/assets/products/starter-bundle.jpg',
+  tech:         '/assets/products/hero-roofbox.jpg',
+  carpentry:    '/assets/products/hero-roofbox.jpg',
 };
 
 export class ProjectDetailView {

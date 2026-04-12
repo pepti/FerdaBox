@@ -53,7 +53,7 @@ describe('validateProject — POST creates a project', () => {
   const validBody = {
     title:       'My Project',
     description: 'A solid description for this project.',
-    category:    'tech',
+    category:    'roof_boxes',
     year:        2024,
   };
 
@@ -81,8 +81,18 @@ describe('validateProject — POST creates a project', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  test('category=carpentry is valid', () => {
-    const { next } = runValidator(validateProject, { ...validBody, category: 'carpentry' });
+  test('category=roof_racks is valid', () => {
+    const { next } = runValidator(validateProject, { ...validBody, category: 'roof_racks' });
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  test('category=accessories is valid', () => {
+    const { next } = runValidator(validateProject, { ...validBody, category: 'accessories' });
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  test('category=bundles is valid', () => {
+    const { next } = runValidator(validateProject, { ...validBody, category: 'bundles' });
     expect(next).toHaveBeenCalledTimes(1);
   });
 
@@ -171,7 +181,7 @@ describe('validateProject — PATCH (optional fields)', () => {
   });
 
   test('partial update with valid category calls next()', () => {
-    const { next } = runValidator(validateProject, { category: 'carpentry' }, 'PATCH');
+    const { next } = runValidator(validateProject, { category: 'roof_racks' }, 'PATCH');
     expect(next).toHaveBeenCalledTimes(1);
   });
 
@@ -190,13 +200,23 @@ describe('validateQuery — GET project list filters', () => {
     expect(next).toHaveBeenCalledTimes(1);
   });
 
-  test('category=tech is valid', () => {
-    const { next } = runQuery({ category: 'tech' });
+  test('category=roof_boxes is valid', () => {
+    const { next } = runQuery({ category: 'roof_boxes' });
     expect(next).toHaveBeenCalledTimes(1);
   });
 
-  test('category=carpentry is valid', () => {
-    const { next } = runQuery({ category: 'carpentry' });
+  test('category=roof_racks is valid', () => {
+    const { next } = runQuery({ category: 'roof_racks' });
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  test('category=accessories is valid', () => {
+    const { next } = runQuery({ category: 'accessories' });
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  test('category=bundles is valid', () => {
+    const { next } = runQuery({ category: 'bundles' });
     expect(next).toHaveBeenCalledTimes(1);
   });
 

@@ -16,8 +16,11 @@ import { VerifyEmailView }    from './views/VerifyEmailView.js';
 import { ForgotPasswordView } from './views/ForgotPasswordView.js';
 import { ResetPasswordView }  from './views/ResetPasswordView.js';
 import { isAuthenticated, isAdmin } from './services/auth.js';
-import { PartyView }      from './views/PartyView.js';
-import { PartyAdminView } from './views/PartyAdminView.js';
+import { PartyView }        from './views/PartyView.js';
+import { PartyAdminView }   from './views/PartyAdminView.js';
+import { CartView }          from './views/CartView.js';
+import { CheckoutView }      from './views/CheckoutView.js';
+import { OrdersView, OrderDetailView } from './views/OrdersView.js';
 
 // More specific patterns must come before generic ones
 const ROUTES = [
@@ -39,6 +42,10 @@ const ROUTES = [
   { pattern: '/reset-password',  factory: (_, qs) => new ResetPasswordView(qs) },
   { pattern: '/privacy',         factory: ()  => new PrivacyView() },
   { pattern: '/terms',           factory: ()  => new TermsView() },
+  { pattern: '/cart',             factory: ()  => new CartView() },
+  { pattern: '/checkout',        factory: ()  => isAuthenticated() ? new CheckoutView() : new CartView() },
+  { pattern: '/orders/:id',      factory: (p) => new OrderDetailView(p.id) },
+  { pattern: '/orders',          factory: ()  => new OrdersView() },
   { pattern: '/party/admin',     factory: ()  => (isAuthenticated() && isAdmin()) ? new PartyAdminView() : new PartyView() },
   { pattern: '/party',           factory: ()  => new PartyView() },
 ];
@@ -82,6 +89,17 @@ export class Router {
   init() {
     window.addEventListener('hashchange', this._navigate);
     window.addEventListener('authchange', () => this._navigate());
+    window.addEventListener('languagechange', () => {
+      // Re-render navbar with new language
+      const navEl = document.querySelector('.lol-nav');
+      if (navEl) {
+        const newNav = this.navBar.render();
+        navEl.replaceWith(newNav);
+        this.navBar.setActive(this._currentPattern || '/');
+      }
+      // Re-render current view
+      this._navigate();
+    });
     this._navigate();
   }
 
@@ -123,7 +141,8 @@ export class Router {
 
     this.mountEl.innerHTML = '';
     this.mountEl.appendChild(el);
-    this.navBar.setActive(pattern || '/');
+    this._currentPattern = pattern || '/';
+    this.navBar.setActive(this._currentPattern);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

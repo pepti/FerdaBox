@@ -39,23 +39,23 @@ describe('GET /api/v1/projects', () => {
     expect(res.body).toHaveLength(2);
   });
 
-  test('filters by category=tech', async () => {
-    await request(app).post('/api/v1/projects').set('Cookie', sessionCookie).send(validProject({ category: 'tech' }));
-    await request(app).post('/api/v1/projects').set('Cookie', sessionCookie).send(validProject({ title: 'Wood', category: 'carpentry' }));
+  test('filters by category=roof_boxes', async () => {
+    await request(app).post('/api/v1/projects').set('Cookie', sessionCookie).send(validProject({ category: 'roof_boxes' }));
+    await request(app).post('/api/v1/projects').set('Cookie', sessionCookie).send(validProject({ title: 'Rack', category: 'roof_racks' }));
 
-    const res = await request(app).get('/api/v1/projects?category=tech');
+    const res = await request(app).get('/api/v1/projects?category=roof_boxes');
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
-    expect(res.body[0].category).toBe('tech');
+    expect(res.body[0].category).toBe('roof_boxes');
   });
 
-  test('filters by category=carpentry', async () => {
-    await request(app).post('/api/v1/projects').set('Cookie', sessionCookie).send(validProject({ category: 'tech' }));
-    await request(app).post('/api/v1/projects').set('Cookie', sessionCookie).send(validProject({ title: 'Wood', category: 'carpentry' }));
+  test('filters by category=accessories', async () => {
+    await request(app).post('/api/v1/projects').set('Cookie', sessionCookie).send(validProject({ category: 'roof_boxes' }));
+    await request(app).post('/api/v1/projects').set('Cookie', sessionCookie).send(validProject({ title: 'Lock Kit', category: 'accessories' }));
 
-    const res = await request(app).get('/api/v1/projects?category=carpentry');
+    const res = await request(app).get('/api/v1/projects?category=accessories');
     expect(res.status).toBe(200);
-    expect(res.body.every(p => p.category === 'carpentry')).toBe(true);
+    expect(res.body.every(p => p.category === 'accessories')).toBe(true);
   });
 
   test('filters by featured=true', async () => {
@@ -157,7 +157,7 @@ describe('POST /api/v1/projects', () => {
     expect(res.body).toMatchObject({
       id:         expect.any(Number),
       title:      validProject().title,
-      category:   'tech',
+      category:   'roof_boxes',
       year:       2024,
       featured:   false,
       tools_used: ['Node.js', 'PostgreSQL'],
@@ -371,7 +371,7 @@ describe('PATCH /api/v1/projects/:id', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.title).toBe('Patched Title');
-    expect(res.body.category).toBe('tech'); // unchanged
+    expect(res.body.category).toBe('roof_boxes'); // unchanged
     expect(res.body.year).toBe(2024);       // unchanged
   });
 

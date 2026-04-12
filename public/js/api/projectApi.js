@@ -193,3 +193,48 @@ export const projectApi = {
     });
   },
 };
+
+// ── Cart API ────────────────────────────────────────────────────────────────
+
+const CART_BASE  = '/api/v1/cart';
+const ORDER_BASE = '/api/v1/orders';
+
+export const cartApi = {
+  getCart:  () => request(CART_BASE),
+  getCount: () => request(`${CART_BASE}/count`),
+
+  async addItem(projectId, quantity = 1) {
+    return request(CART_BASE, {
+      method: 'POST', headers: await csrfHeaders(),
+      body: JSON.stringify({ project_id: projectId, quantity }),
+    });
+  },
+
+  async updateItem(itemId, quantity) {
+    return request(`${CART_BASE}/${itemId}`, {
+      method: 'PATCH', headers: await csrfHeaders(),
+      body: JSON.stringify({ quantity }),
+    });
+  },
+
+  async removeItem(itemId) {
+    return request(`${CART_BASE}/${itemId}`, {
+      method: 'DELETE', headers: await csrfHeaders(),
+    });
+  },
+
+  async clearCart() {
+    return request(CART_BASE, { method: 'DELETE', headers: await csrfHeaders() });
+  },
+};
+
+export const orderApi = {
+  async checkout(shippingInfo) {
+    return request(ORDER_BASE, {
+      method: 'POST', headers: await csrfHeaders(),
+      body: JSON.stringify(shippingInfo),
+    });
+  },
+  getOrders: () => request(ORDER_BASE),
+  getOrder:  (id) => request(`${ORDER_BASE}/${id}`),
+};

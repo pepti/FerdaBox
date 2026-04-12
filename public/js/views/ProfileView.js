@@ -1,6 +1,7 @@
 import { isAuthenticated, getProfile, updateProfile, changePassword, getSessions, revokeSession, revokeAllSessions } from '../services/auth.js';
 import { showToast } from '../components/Toast.js';
 import { escHtml } from '../utils/escHtml.js';
+import { t } from '../i18n/index.js';
 
 const TOTAL_AVATARS = 40;
 const pad = n => String(n).padStart(2, '0');
@@ -28,7 +29,7 @@ export class ProfileView {
     el.className = 'main profile-page';
     el.innerHTML = `
       <div class="profile-container">
-        <div class="profile-loading">Loading profile…</div>
+        <div class="profile-loading">${t('profile.loading')}</div>
       </div>
     `;
 
@@ -45,25 +46,25 @@ export class ProfileView {
       this._bindPassword(el);
       this._bindSessions(el, sessions);
     } catch (err) {
-      wrap.innerHTML = `<p class="profile-error">Failed to load profile: ${escHtml(err.message)}</p>`;
+      wrap.innerHTML = `<p class="profile-error">${t('profile.loadError')} ${escHtml(err.message)}</p>`;
     }
   }
 
   _buildHTML(profile, sessions) {
     const avatarName = profile.avatar || 'avatar-01.svg';
     const roleBadge  = profile.role === 'admin'
-      ? `<span class="badge badge--admin">Admin</span>`
-      : `<span class="badge badge--user">User</span>`;
+      ? `<span class="badge badge--admin">${t('profile.admin')}</span>`
+      : `<span class="badge badge--user">${t('profile.user')}</span>`;
     const verified = profile.emailVerified
-      ? `<span class="verified-badge">✓ Verified</span>`
-      : `<span class="unverified-badge">✗ Unverified</span>`;
+      ? `<span class="verified-badge">✓ ${t('profile.verified')}</span>`
+      : `<span class="unverified-badge">✗ ${t('profile.unverified')}</span>`;
 
     const sessionRows = (Array.isArray(sessions) ? sessions : []).map(s => `
       <tr data-session-id="${escHtml(s.id)}">
         <td class="session-device">
           <span class="session-device__icon">${s.is_current ? '●' : '○'}</span>
           ${escHtml(s.user_agent || 'Unknown device')}
-          ${s.is_current ? '<span class="session-current-badge">Current</span>' : ''}
+          ${s.is_current ? `<span class="session-current-badge">${t('profile.current')}</span>` : ''}
         </td>
         <td class="session-ip">${escHtml(s.ip_address || '—')}</td>
         <td class="session-date">${formatDateTime(s.created_at)}</td>

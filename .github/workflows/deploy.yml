@@ -1,15 +1,56 @@
-name: Deploy to Azure
+name: Deploy FerdaBox to Azure
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
+  ci:
+    name: Lint + Integration tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER:     postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB:       ferdabox_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests with coverage
+        env:
+          NODE_ENV:            test
+          TEST_DATABASE_URL:   postgresql://postgres:postgres@localhost:5432/ferdabox_test
+        run: npm run test:ci
+
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    needs: []
+    needs: ci
 
     steps:
       - name: Checkout
@@ -28,8 +69,8 @@ jobs:
           context: .
           push: true
           tags: |
-            hallismileyacr.azurecr.io/hallismiley:latest
-            hallismileyacr.azurecr.io/hallismiley:${{ github.sha }}
+            hallismileyacr.azurecr.io/ferdabox:latest
+            hallismileyacr.azurecr.io/ferdabox:${{ github.sha }}
 
       - name: Azure Login
         uses: azure/login@v2
@@ -39,5 +80,5 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: hallismiley-app
-          images: hallismileyacr.azurecr.io/hallismiley:${{ github.sha }}
+          app-name: ferdabox-app
+          images: hallismileyacr.azurecr.io/ferdabox:${{ github.sha }}

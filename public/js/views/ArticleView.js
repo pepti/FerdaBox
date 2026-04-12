@@ -7,6 +7,7 @@ import { getUser } from '../services/auth.js';
 import { getCsrfHeaders }           from '../utils/api.js';
 import { getCSRFToken }             from '../services/auth.js';
 import { avatarPathByName }         from '../utils/avatar.js';
+import { t }                        from '../i18n/index.js';
 
 // Tags allowed in article body (whitelist for DOMParser sanitisation)
 const ALLOWED_TAGS = new Set([
@@ -116,7 +117,7 @@ export class ArticleView {
     this._view.className = 'view article-page';
 
     // Show skeleton while loading
-    this._view.innerHTML = `<div class="article-page__loading">Loading article…</div>`;
+    this._view.innerHTML = `<div class="article-page__loading">${t('news.loadingArticle')}</div>`;
 
     try {
       const user = getUser();
@@ -165,8 +166,8 @@ export class ArticleView {
       this._view.innerHTML = `
         <div class="article-page__inner">
           <p class="article-page__error">
-            Could not load this article${err && err.message ? ` — ${_esc(err.message)}` : ''}.
-            <a href="#/news">Back to News</a>
+            ${t('news.loadError')}
+            <a href="#/news">${t('news.backToNews')}</a>
           </p>
         </div>`;
     }
@@ -185,9 +186,9 @@ export class ArticleView {
     return `
       <div class="article-page__inner article-page__inner--narrow">
         <p class="article-page__eyebrow">404</p>
-        <h1 class="article-page__404-title">Article Not Found</h1>
-        <p class="article-page__404-desc">This article doesn't exist or may have been removed.</p>
-        <a href="#/news" class="article-back-link">← Back to News</a>
+        <h1 class="article-page__404-title">${t('news.articleNotFound')}</h1>
+        <p class="article-page__404-desc">${t('news.articleNotFoundDesc')}</p>
+        <a href="#/news" class="article-back-link">${t('news.backToNews')}</a>
       </div>`;
   }
 
@@ -262,17 +263,17 @@ export class ArticleView {
          </div>`;
 
     const draftBadge = !a.published
-      ? `<span class="article-draft-badge" aria-label="Draft — not publicly visible">DRAFT</span>`
+      ? `<span class="article-draft-badge" aria-label="${t('news.draft')}">DRAFT</span>`
       : '';
 
     const adminBtns = isEditor
       ? `<div class="article-admin-bar">
            ${draftBadge}
            <button class="article-admin-btn article-admin-btn--edit" id="article-edit-btn">
-             Edit Article
+             ${t('news.editArticle')}
            </button>
            <button class="article-admin-btn article-admin-btn--delete" id="article-delete-btn">
-             Delete
+             ${t('news.deleteArticle')}
            </button>
          </div>`
       : '';
@@ -288,7 +289,7 @@ export class ArticleView {
                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
-            Back to News
+            ${t('news.backToNews')}
           </a>
           ${adminBtns}
         </nav>
@@ -314,14 +315,14 @@ export class ArticleView {
                 <polyline points="16 6 12 2 8 6"/>
                 <line x1="12" y1="2" x2="12" y2="15"/>
               </svg>
-              Share
+              ${t('news.share')}
             </button>
             <span class="article-share-confirm" id="share-confirm" aria-live="polite"></span>
           </footer>
         </article>
 
         <div class="article-page__back">
-          <a href="#/news" class="article-back-link">← All Articles</a>
+          <a href="#/news" class="article-back-link">${t('news.allArticles')}</a>
         </div>
       </div>
     `;
@@ -337,7 +338,7 @@ export class ArticleView {
         try {
           await navigator.clipboard.writeText(url);
           if (confirm) {
-            confirm.textContent = 'Link copied!';
+            confirm.textContent = t('news.linkCopied');
             setTimeout(() => { confirm.textContent = ''; }, 2500);
           }
         } catch {
@@ -366,10 +367,10 @@ export class ArticleView {
     overlay.id    = 'article-editor-overlay';
     overlay.className = 'news-editor-overlay';
     overlay.innerHTML = `
-      <div class="news-editor" role="dialog" aria-modal="true" aria-label="Edit Article">
+      <div class="news-editor" role="dialog" aria-modal="true" aria-label="${t('news.editArticle')}">
         <div class="news-editor__header">
-          <h2 class="news-editor__title">Edit Article</h2>
-          <button class="news-editor__close" aria-label="Close editor">✕</button>
+          <h2 class="news-editor__title">${t('news.editArticle')}</h2>
+          <button class="news-editor__close" aria-label="${t('common.close')}">✕</button>
         </div>
         <form class="news-editor__form" id="article-edit-form" novalidate>
           <label class="news-editor__label">Title *
@@ -407,20 +408,20 @@ export class ArticleView {
 
           <!-- Media Section -->
           <div class="news-editor__media-section">
-            <h3 class="news-editor__media-heading">Media</h3>
+            <h3 class="news-editor__media-heading">${t('news.media')}</h3>
             <div class="news-editor__media-actions">
               <label class="news-editor__media-btn">
-                + Add Image
+                ${t('news.addImage')}
                 <input type="file" accept="image/jpeg,image/png,image/webp" hidden
                        id="media-upload-image">
               </label>
               <label class="news-editor__media-btn">
-                + Add Video
+                ${t('news.addVideo')}
                 <input type="file" accept="video/mp4,video/webm" hidden
                        id="media-upload-video">
               </label>
               <button type="button" class="news-editor__media-btn" id="media-add-youtube">
-                + YouTube
+                ${t('news.addYouTube')}
               </button>
             </div>
             <div class="news-editor__media-status" id="media-status" aria-live="polite"></div>
@@ -431,8 +432,8 @@ export class ArticleView {
 
           <div class="news-editor__status" id="edit-status" aria-live="polite"></div>
           <div class="news-editor__actions">
-            <button type="button" class="news-editor__btn news-editor__btn--cancel" id="edit-cancel-btn">Cancel</button>
-            <button type="submit" class="news-editor__btn news-editor__btn--save">Save Changes</button>
+            <button type="button" class="news-editor__btn news-editor__btn--cancel" id="edit-cancel-btn">${t('common.cancel')}</button>
+            <button type="submit" class="news-editor__btn news-editor__btn--save">${t('common.saveChanges')}</button>
           </div>
         </form>
       </div>
@@ -474,7 +475,7 @@ export class ArticleView {
 
       status.textContent  = '';
       saveBtn.disabled    = true;
-      saveBtn.textContent = 'Saving…';
+      saveBtn.textContent = t('common.saving');
 
       try {
         const headers = await getCsrfHeaders();
@@ -496,7 +497,7 @@ export class ArticleView {
         status.textContent = err.message;
       } finally {
         saveBtn.disabled    = false;
-        saveBtn.textContent = 'Save Changes';
+        saveBtn.textContent = t('common.saveChanges');
       }
     });
 
@@ -532,7 +533,7 @@ export class ArticleView {
         <div class="news-editor__media-item" data-media-id="${m.id}" draggable="true">
           ${preview}
           <div class="news-editor__media-item-controls">
-            <input type="text" class="news-editor__media-caption" placeholder="Caption…"
+            <input type="text" class="news-editor__media-caption" placeholder="${t('news.captionPlaceholder')}"
                    value="${_esc(m.caption || '')}" data-media-id="${m.id}">
             <button type="button" class="news-editor__media-delete" data-media-id="${m.id}"
                     aria-label="Delete media">✕</button>
@@ -628,7 +629,7 @@ export class ArticleView {
   }
 
   async _uploadMediaFile(overlay, file) {
-    this._showMediaStatus(overlay, 'Uploading…');
+    this._showMediaStatus(overlay, t('common.uploading'));
     try {
       const token = await getCSRFToken();
       const fd = new FormData();

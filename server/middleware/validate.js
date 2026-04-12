@@ -2,7 +2,7 @@
 
 // ── Project validation ────────────────────────────────────────────────────────
 
-const VALID_CATEGORIES = ['carpentry', 'tech'];
+const VALID_CATEGORIES = ['carpentry', 'tech', 'roof_boxes', 'roof_racks', 'accessories', 'bundles'];
 const MIN_YEAR = 1900;
 const MAX_YEAR = 2100;
 const MAX_TITLE_LEN = 200;
@@ -11,8 +11,10 @@ const MAX_TOOL_LEN  = 100;
 const MAX_TOOLS     = 50;
 
 // Validates body fields on POST / PUT / PATCH
+const VALID_STATUSES = ['draft', 'active', 'sold_out', 'discontinued'];
+
 function validateProject(req, res, next) {
-  const { title, description, category, year, tools_used, image_url, featured } = req.body;
+  const { title, description, category, year, tools_used, image_url, featured, price, compare_at_price, stock_quantity, sku, status } = req.body;
   const errors = [];
   const isPOST = req.method === 'POST';
 
@@ -65,6 +67,25 @@ function validateProject(req, res, next) {
     } else if (!/^https:\/\/.+/i.test(image_url) && !/^\/assets\//i.test(image_url)) {
       errors.push('image_url must be a valid https:// URL or a relative /assets/ path');
     }
+  }
+  // E-commerce fields
+  if (price !== undefined) {
+    const p = Number(price);
+    if (isNaN(p) || p < 0) errors.push('price must be a non-negative number');
+  }
+  if (compare_at_price !== undefined && compare_at_price !== null) {
+    const p = Number(compare_at_price);
+    if (isNaN(p) || p < 0) errors.push('compare_at_price must be a non-negative number');
+  }
+  if (stock_quantity !== undefined) {
+    const s = Number(stock_quantity);
+    if (!Number.isInteger(s) || s < 0) errors.push('stock_quantity must be a non-negative integer');
+  }
+  if (sku !== undefined && sku !== null && sku !== '') {
+    if (typeof sku !== 'string' || sku.length > 50) errors.push('sku must be a string of at most 50 characters');
+  }
+  if (status !== undefined && !VALID_STATUSES.includes(status)) {
+    errors.push(`status must be one of: ${VALID_STATUSES.join(', ')}`);
   }
 
   if (errors.length) {

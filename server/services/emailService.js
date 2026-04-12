@@ -2,9 +2,9 @@
 // Falls back to console logging when RESEND_API_KEY is not set (dev/test mode).
 const { Resend } = require('resend');
 
-const APP_URL   = process.env.APP_URL || 'https://www.hallismiley.is';
-const FROM_ADDR = process.env.EMAIL_FROM || 'noreply@hallismiley.is';
-const FROM      = `Halli Smiley <${FROM_ADDR}>`;
+const APP_URL   = process.env.APP_URL || 'https://ferdabox.is';
+const FROM_ADDR = process.env.EMAIL_FROM || 'noreply@ferdabox.is';
+const FROM      = `Ferða Box <${FROM_ADDR}>`;
 
 function isConfigured() {
   return !!process.env.RESEND_API_KEY;
@@ -32,8 +32,8 @@ function emailShell(title, bodyHtml) {
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#1a1a1a 0%,#0d0d0d 100%);padding:32px 40px;border-bottom:2px solid #c9a84c;">
-              <h1 style="margin:0;font-size:28px;font-weight:700;color:#c9a84c;letter-spacing:1px;">Halli Smiley</h1>
-              <p style="margin:4px 0 0;font-size:13px;color:#666;letter-spacing:2px;text-transform:uppercase;">hallismiley.is</p>
+              <h1 style="margin:0;font-size:28px;font-weight:700;color:#c9a84c;letter-spacing:1px;">Ferða Box</h1>
+              <p style="margin:4px 0 0;font-size:13px;color:#666;letter-spacing:2px;text-transform:uppercase;">ferdabox.is</p>
             </td>
           </tr>
           <!-- Body -->
@@ -46,7 +46,7 @@ function emailShell(title, bodyHtml) {
           <tr>
             <td style="padding:24px 40px;border-top:1px solid #222;background-color:#0d0d0d;">
               <p style="margin:0;font-size:12px;color:#444;text-align:center;">
-                You received this email from <a href="${APP_URL}" style="color:#c9a84c;text-decoration:none;">hallismiley.is</a>.
+                You received this email from <a href="${APP_URL}" style="color:#c9a84c;text-decoration:none;">ferdabox.is</a>.
                 If you did not request this, you can safely ignore it.
               </p>
             </td>
@@ -70,7 +70,7 @@ async function sendVerificationEmail(to, token) {
     return;
   }
 
-  const subject = 'Verify your Halli Smiley account';
+  const subject = 'Staðfestu Ferða Box aðganginn þinn';
   const html = emailShell(subject, `
     <h2 style="margin:0 0 16px;font-size:22px;color:#e0e0e0;">Verify your email</h2>
     <p style="margin:0 0 24px;font-size:15px;color:#aaa;line-height:1.6;">
@@ -111,7 +111,7 @@ async function sendPasswordResetEmail(to, token) {
     return;
   }
 
-  const subject = 'Reset your Halli Smiley password';
+  const subject = 'Endurstilla lykilorð á Ferða Box';
   const html = emailShell(subject, `
     <h2 style="margin:0 0 16px;font-size:22px;color:#e0e0e0;">Reset your password</h2>
     <p style="margin:0 0 24px;font-size:15px;color:#aaa;line-height:1.6;">

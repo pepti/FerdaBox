@@ -1,5 +1,6 @@
 import { login }      from '../services/auth.js';
 import { showToast }  from './Toast.js';
+import { t } from '../i18n/index.js';
 
 export class LoginModal {
   constructor() {
@@ -14,28 +15,28 @@ export class LoginModal {
     overlay.setAttribute('aria-labelledby', 'login-title');
     overlay.innerHTML = `
       <div class="modal login-modal">
-        <button class="modal__close" aria-label="Close">&times;</button>
-        <p class="login-modal__eyebrow">Welcome Back</p>
-        <h2 class="modal__title" id="login-title">Sign in</h2>
+        <button class="modal__close" aria-label="${t('common.close')}">&times;</button>
+        <p class="login-modal__eyebrow">${t('auth.welcomeBack')}</p>
+        <h2 class="modal__title" id="login-title">${t('auth.signIn')}</h2>
         <form class="login-form" novalidate data-testid="login-form">
           <div class="form-group">
-            <label class="form-label" for="login-username">Username</label>
+            <label class="form-label" for="login-username">${t('auth.username')}</label>
             <input class="form-input" id="login-username" name="username"
               type="text" autocomplete="username" required />
           </div>
           <div class="form-group">
-            <label class="form-label" for="login-password">Password</label>
+            <label class="form-label" for="login-password">${t('auth.password')}</label>
             <input class="form-input" id="login-password" name="password"
               type="password" autocomplete="current-password" required />
           </div>
           <p class="form-error" aria-live="polite"></p>
-          <button class="btn btn--primary btn--full" type="submit" data-testid="login-submit">Sign in</button>
+          <button class="btn btn--primary btn--full" type="submit" data-testid="login-submit">${t('auth.signIn')}</button>
           <div class="login-modal__footer">
             <a href="#/forgot-password" class="login-modal__link" data-route="/forgot-password"
-               id="login-forgot-link">Forgot password?</a>
+               id="login-forgot-link">${t('auth.forgotPassword')}</a>
             <span class="login-modal__sep">·</span>
             <a href="#/signup" class="login-modal__link" data-route="/signup"
-               id="login-signup-link">Create account</a>
+               id="login-signup-link">${t('auth.createAccount')}</a>
           </div>
         </form>
       </div>
@@ -78,7 +79,7 @@ export class LoginModal {
 
     errEl.textContent = '';
     btn.disabled = true;
-    btn.textContent = 'Signing in…';
+    btn.textContent = t('auth.signIn') + '...';
 
     try {
       await login(username, password);
@@ -88,7 +89,7 @@ export class LoginModal {
       errEl.textContent = err.message;
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Sign in';
+      btn.textContent = t('auth.signIn');
     }
   }
 }

@@ -1,5 +1,6 @@
 import { signup, checkUsername, checkEmail, resendVerification } from '../services/auth.js';
 import { escHtml } from '../utils/escHtml.js';
+import { t } from '../i18n/index.js';
 
 const TOTAL_AVATARS = 40;
 const pad = n => String(n).padStart(2, '0');
@@ -16,7 +17,7 @@ function passwordStrength(pw) {
   if (/[A-Za-z]/.test(pw)) score++;
   if (/\d/.test(pw))        score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+  const labels = ['', t('auth.passwordWeak'), t('auth.passwordFair'), t('auth.passwordGood'), t('auth.passwordStrong'), t('auth.passwordVeryStrong')];
   return { score, label: labels[score] || 'Very Strong' };
 }
 
@@ -31,16 +32,16 @@ export class SignupView {
       <div class="signup-container">
         <div class="signup-card">
           <div class="signup-card__header">
-            <p class="signup-eyebrow">Join the Community</p>
-            <h1 class="signup-title">Create Account</h1>
-            <p class="signup-subtitle">Already have an account? <a href="#/login" class="signup-link" data-route="/login">Sign in</a></p>
+            <p class="signup-eyebrow">${t('auth.joinCommunity')}</p>
+            <h1 class="signup-title">${t('auth.createAccount')}</h1>
+            <p class="signup-subtitle">${t('auth.hasAccount')} <a href="#/login" class="signup-link" data-route="/login">${t('auth.signIn')}</a></p>
           </div>
 
           <form class="signup-form" id="signup-form" novalidate data-testid="signup-form">
 
             <!-- Avatar picker -->
             <div class="form-group">
-              <span class="form-label">Choose Avatar</span>
+              <span class="form-label">${t('auth.chooseAvatar')}</span>
               <div class="avatar-picker" id="avatar-picker" data-testid="avatar-picker"></div>
               <input type="hidden" id="signup-avatar" name="avatar" value=""/>
             </div>
@@ -48,15 +49,15 @@ export class SignupView {
             <!-- Email + Username -->
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="signup-email">Email <span class="req">*</span></label>
+                <label class="form-label" for="signup-email">${t('auth.emailLabel')} <span class="req">*</span></label>
                 <input class="form-input" id="signup-email" name="email" type="email"
-                       autocomplete="email" required placeholder="you@example.com"/>
+                       autocomplete="email" required placeholder="${t('auth.emailPlaceholder')}"/>
                 <p class="form-field-status" id="email-status"></p>
               </div>
               <div class="form-group">
-                <label class="form-label" for="signup-username">Username <span class="req">*</span></label>
+                <label class="form-label" for="signup-username">${t('auth.usernameLabel')} <span class="req">*</span></label>
                 <input class="form-input" id="signup-username" name="username" type="text"
-                       autocomplete="username" required placeholder="cooluser42"
+                       autocomplete="username" required placeholder="${t('auth.usernamePlaceholder')}"
                        minlength="3" maxlength="32"/>
                 <p class="form-field-status" id="username-status"></p>
               </div>
@@ -66,14 +67,14 @@ export class SignupView {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="signup-displayname">
-                  Display Name <span class="form-hint">(optional)</span>
+                  ${t('auth.displayName')} <span class="form-hint">${t('auth.optional')}</span>
                 </label>
                 <input class="form-input" id="signup-displayname" name="displayName" type="text"
                        autocomplete="name" placeholder="Cool User"/>
               </div>
               <div class="form-group">
                 <label class="form-label" for="signup-phone">
-                  Phone <span class="form-hint">(optional)</span>
+                  ${t('auth.phone')} <span class="form-hint">${t('auth.optional')}</span>
                 </label>
                 <input class="form-input" id="signup-phone" name="phone" type="tel"
                        autocomplete="tel" placeholder="+1 555 000 0000"/>
@@ -83,18 +84,18 @@ export class SignupView {
             <!-- Password -->
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label" for="signup-password">Password <span class="req">*</span></label>
+                <label class="form-label" for="signup-password">${t('auth.passwordLabel')} <span class="req">*</span></label>
                 <input class="form-input" id="signup-password" name="password" type="password"
                        autocomplete="new-password" required/>
                 <div class="password-strength" id="pw-strength" aria-live="polite"></div>
                 <ul class="pw-requirements">
-                  <li id="req-length">At least 8 characters</li>
-                  <li id="req-letter">At least 1 letter</li>
-                  <li id="req-number">At least 1 number</li>
+                  <li id="req-length">${t('auth.passwordMinChars')}</li>
+                  <li id="req-letter">${t('auth.passwordMinLetter')}</li>
+                  <li id="req-number">${t('auth.passwordMinNumber')}</li>
                 </ul>
               </div>
               <div class="form-group">
-                <label class="form-label" for="signup-confirm">Confirm Password <span class="req">*</span></label>
+                <label class="form-label" for="signup-confirm">${t('auth.confirmPassword')} <span class="req">*</span></label>
                 <input class="form-input" id="signup-confirm" name="confirm" type="password"
                        autocomplete="new-password" required/>
                 <p class="form-field-status" id="confirm-status"></p>
@@ -102,7 +103,7 @@ export class SignupView {
             </div>
 
             <p class="form-error" id="signup-error" aria-live="polite"></p>
-            <button class="btn btn--primary btn--full" type="submit" id="signup-btn">Create Account</button>
+            <button class="btn btn--primary btn--full" type="submit" id="signup-btn">${t('auth.signUpBtn')}</button>
           </form>
 
           <div class="signup-success" id="signup-success" hidden>
@@ -251,7 +252,7 @@ export class SignupView {
     }
 
     btn.disabled = true;
-    btn.textContent = 'Creating account…';
+    btn.textContent = t('common.loading');
 
     try {
       await signup({
@@ -272,7 +273,7 @@ export class SignupView {
     } catch (err) {
       errEl.textContent = err.message;
       btn.disabled = false;
-      btn.textContent = 'Create Account';
+      btn.textContent = t('auth.signUpBtn');
     }
   }
 

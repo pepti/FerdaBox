@@ -16,6 +16,8 @@ const adminRoutes    = require('./routes/adminRoutes');
 const contentRoutes  = require('./routes/contentRoutes');
 const newsRoutes     = require('./routes/newsRoutes');
 const partyRoutes    = require('./routes/partyRoutes');
+const cartRoutes     = require('./routes/cartRoutes');
+const orderRoutes    = require('./routes/orderRoutes');
 const errorHandler   = require('./middleware/errorHandler');
 const { sanitizeBody } = require('./middleware/sanitize');
 const { generateCsrfToken } = require('./middleware/csrf');
@@ -293,7 +295,7 @@ app.use(['/auth', '/api/v1'], dbCircuitBreakerMiddleware);
 
 // Routes
 app.use(express.static(path.join(__dirname, '../public'), {
-  maxAge: '1h',
+  maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
   etag: true,
   lastModified: true,
   setHeaders(res, filePath) {
@@ -311,6 +313,8 @@ app.use('/api/v1/admin',      adminRoutes);
 app.use('/api/v1/content',   contentRoutes);
 app.use('/api/v1/news',      newsRoutes);
 app.use('/api/v1/party',     partyRoutes);
+app.use('/api/v1/cart',      cartRoutes);
+app.use('/api/v1/orders',    orderRoutes);
 
 // Fallback SPA route — never cache, browser must revalidate on every navigation
 app.get('*', (req, res) => {
