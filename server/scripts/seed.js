@@ -1,4 +1,4 @@
-// Populates the database with sample FerdaBox products
+// Populates the database with the Titan travel box product, sections, and gallery images
 // Run: node server/scripts/seed.js
 require('dotenv').config();
 const Project = require('../models/Project');
@@ -6,80 +6,130 @@ const { pool } = require('../config/database');
 
 const seedData = [
   {
-    title: 'FerdaBox Explorer 400L',
-    description: 'The perfect all-round roof box for family adventures. 400 litre capacity fits skis, snowboards, and luggage with ease. Dual-side opening for convenient access from either side of the car. Aerodynamic design reduces wind noise and fuel consumption. Quick-mount system fits most factory and aftermarket roof bars.',
+    title: 'Titan Travel Box',
+    description: 'The ultimate roof box for Icelandic adventures. Built to handle extreme weather and rough highland roads, the Titan combines massive cargo space with a sleek aerodynamic profile. Dual-side opening, integrated lock system, and quick-mount hardware included.',
     category: 'roof_boxes',
     year: 2026,
-    tools_used: ['400L', 'dual-side opening', 'aerodynamic', 'quick-mount', 'fits skis'],
-    image_url: '/assets/products/explorer-400l.jpg',
-    featured: true,
-    price: 89900,
-    stock_quantity: 25,
-    sku: 'FB-EXP-400',
-    status: 'active',
-  },
-  {
-    title: 'FerdaBox Pro 520L',
-    description: 'Our flagship roof box for serious travelers. 520 litres of storage with a reinforced fiberglass shell that handles the harshest Icelandic conditions. Central locking system with anti-theft protection. Low-profile design for minimal aerodynamic drag. Premium matte black finish.',
-    category: 'roof_boxes',
-    year: 2026,
-    tools_used: ['520L', 'fiberglass', 'central lock', 'anti-theft', 'matte black'],
-    image_url: '/assets/products/pro-520l.jpg',
+    tools_used: ['aerodynamic', 'dual-side opening', 'integrated lock', 'quick-mount', 'weatherproof'],
+    image_url: '/assets/products/titan/5.jpg',
     featured: true,
     price: 129900,
-    compare_at_price: 149900,
-    stock_quantity: 12,
-    sku: 'FB-PRO-520',
-    status: 'active',
-  },
-  {
-    title: 'Universal Cross Bars',
-    description: 'Heavy-duty aluminum cross bars that fit most vehicles with raised or flush roof rails. 75 kg load capacity per pair. Tool-free installation with adjustable clamp system. Includes T-track mounting for easy box attachment. Available in silver or black anodized finish.',
-    category: 'roof_racks',
-    year: 2026,
-    tools_used: ['aluminum', '75kg capacity', 'tool-free install', 'T-track', 'adjustable'],
-    image_url: '/assets/products/cross-bars.jpg',
-    featured: true,
-    price: 34900,
-    stock_quantity: 40,
-    sku: 'FB-RACK-UNI',
-    status: 'active',
-  },
-  {
-    title: 'FerdaBox Starter Bundle',
-    description: 'Everything you need to hit the road. Includes our Explorer 400L roof box, a pair of Universal Cross Bars, and a cargo net and straps kit. Save 15% compared to buying separately. Perfect for first-time roof box users.',
-    category: 'bundles',
-    year: 2026,
-    tools_used: ['400L box', 'cross bars', 'cargo net', 'straps', 'save 15%'],
-    image_url: '/assets/products/starter-bundle.jpg',
-    featured: true,
-    price: 119900,
-    compare_at_price: 134700,
-    stock_quantity: 15,
-    sku: 'FB-BUNDLE-START',
-    status: 'active',
-  },
-  {
-    title: 'Cargo Net & Straps Kit',
-    description: 'Heavy-duty cargo net (120x80 cm) with 4 ratchet straps rated to 500 kg each. Keeps your gear secure inside any roof box. UV-resistant nylon mesh with reinforced edges. Compact storage bag included.',
-    category: 'accessories',
-    year: 2026,
-    tools_used: ['cargo net', 'ratchet straps', '500kg rated', 'UV-resistant', 'storage bag'],
-    image_url: '/assets/products/cargo-net.jpg',
-    featured: false,
-    price: 9900,
-    stock_quantity: 100,
-    sku: 'FB-ACC-NET',
+    stock_quantity: 30,
+    sku: 'FB-TITAN-001',
     status: 'active',
   },
 ];
 
+// All images in sort order
+const titanGalleryImages = [
+  '1.png', '2.png', '4.jpg', '5.jpg', '6.jpg', '7.jpg', '8.jpg', '9.jpg',
+  '10.jpg', '12.jpg', '13.jpg', '14.jpg', '15.jpg', '16.jpg', '17.jpg',
+  '19.jpg', '20.jpg', '21.jpg', '23.jpg',
+  'XC186A.jpg', 'XC213A.jpg', 'XC2132B.jpg',
+];
+
+// Sections with descriptions and assigned images
+const sectionDefs = [
+  {
+    name: 'Hero Showcase',
+    description: '',
+    sort_order: 1,
+    images: ['1.png', '2.png'],
+  },
+  {
+    name: 'Built for the Journey',
+    description: 'The Titan was engineered for Iceland\u2019s harshest conditions. Every surface, seal, and hinge is built to survive highland gravel, North Atlantic rain, and years of rooftop service. UV-stabilised ABS shell with reinforced ribbing handles impacts that would crack lesser boxes.',
+    sort_order: 2,
+    images: ['4.jpg', '5.jpg'],
+  },
+  {
+    name: 'Interior & Details',
+    description: 'Dual-side opening with a single-hand latch mechanism. The interior features anti-slip matting, integrated tie-down points, and a removable divider for flexible cargo organisation. Every hinge is stainless steel, every seal is double-lipped rubber.',
+    sort_order: 3,
+    images: ['12.jpg', '13.jpg', '14.jpg'],
+  },
+  {
+    name: 'On the Road',
+    description: 'Tested across Iceland\u2019s Ring Road, highland F-roads, and everything in between. The Titan sits aerodynamically on any factory roof rack and handles highway speeds without a whisper. Low-profile design reduces drag and fuel consumption on long drives.',
+    sort_order: 4,
+    images: ['9.jpg', '10.jpg', '15.jpg', '16.jpg'],
+  },
+  {
+    name: 'Dimensions & Specs',
+    description: '',
+    sort_order: 5,
+    images: ['6.jpg', 'XC186A.jpg', 'XC213A.jpg', 'XC2132B.jpg'],
+  },
+];
+
+// Images not in any section go to Ungrouped
+const sectionImages = new Set(sectionDefs.flatMap(s => s.images));
+const ungroupedImages = titanGalleryImages.filter(img => !sectionImages.has(img));
+
 async function seedProjects({ closePool = false } = {}) {
-  console.log('Seeding products…');
+  // Clear existing products and their media before seeding
+  console.log('Clearing existing products\u2026');
+  await pool.query('DELETE FROM project_media');
+  await pool.query('DELETE FROM project_sections');
+  await pool.query('DELETE FROM project_videos');
+  await pool.query('DELETE FROM cart_items');
+  await pool.query('DELETE FROM projects');
+
+  console.log('Seeding products\u2026');
   for (const data of seedData) {
     await Project.create(data);
   }
   console.log(`Done. ${seedData.length} products seeded.`);
+
+  // Get the Titan product ID
+  const { rows } = await pool.query(
+    `SELECT id FROM projects WHERE sku = 'FB-TITAN-001' LIMIT 1`
+  );
+  if (!rows.length) {
+    console.error('Titan product not found after seeding!');
+    if (closePool) await pool.end();
+    return;
+  }
+
+  const projectId = rows[0].id;
+
+  // Insert all media rows first (ungrouped)
+  console.log('Seeding gallery images for Titan (project %d)\u2026', projectId);
+  for (let i = 0; i < titanGalleryImages.length; i++) {
+    await pool.query(
+      `INSERT INTO project_media (project_id, file_path, media_type, sort_order)
+       VALUES ($1, $2, 'image', $3)`,
+      [projectId, `/assets/products/titan/${titanGalleryImages[i]}`, i + 1]
+    );
+  }
+  console.log(`${titanGalleryImages.length} gallery images seeded.`);
+
+  // Create sections and assign images to them
+  console.log('Creating sections\u2026');
+  for (const sec of sectionDefs) {
+    const secResult = await pool.query(
+      `INSERT INTO project_sections (project_id, name, description, sort_order)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [projectId, sec.name, sec.description, sec.sort_order]
+    );
+    const sectionId = secResult.rows[0].id;
+
+    // Assign images to this section
+    for (const img of sec.images) {
+      await pool.query(
+        `UPDATE project_media
+         SET section_id = $1
+         WHERE project_id = $2 AND file_path = $3`,
+        [sectionId, projectId, `/assets/products/titan/${img}`]
+      );
+    }
+    console.log(`  Section "${sec.name}" (id=${sectionId}): ${sec.images.length} images assigned`);
+  }
+
+  console.log(`Ungrouped images: ${ungroupedImages.length} (${ungroupedImages.join(', ')})`);
+  console.log('Seeding complete!');
+
   if (closePool) await pool.end();
 }
 

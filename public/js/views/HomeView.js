@@ -11,28 +11,28 @@ function getCategories() {
   return [
     {
       id: 'roof_boxes', label: t('home.catRoofBoxes'), type: t('home.catTypeRoofBoxes'),
-      img: '/assets/products/category-roofbox.jpg',
+      img: '/assets/products/titan/5.jpg',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                <rect x="2" y="7" width="20" height="10" rx="2"/><line x1="6" y1="17" x2="6" y2="20"/><line x1="18" y1="17" x2="18" y2="20"/>
              </svg>`,
     },
     {
       id: 'roof_racks', label: t('home.catRoofRacks'), type: t('home.catTypeRoofRacks'),
-      img: '/assets/products/category-roofrack.jpg',
+      img: '/assets/products/titan/5.jpg',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                <line x1="2" y1="8" x2="22" y2="8"/><line x1="2" y1="16" x2="22" y2="16"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="18" y1="8" x2="18" y2="16"/>
              </svg>`,
     },
     {
       id: 'accessories', label: t('home.catAccessories'), type: t('home.catTypeAccessories'),
-      img: '/assets/products/cargo-net.jpg',
+      img: '/assets/products/titan/7.jpg',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
              </svg>`,
     },
     {
       id: 'bundles', label: t('home.catBundles'), type: t('home.catTypeBundles'),
-      img: '/assets/products/starter-bundle.jpg',
+      img: '/assets/products/titan/10.jpg',
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/>
              </svg>`,

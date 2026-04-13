@@ -3,13 +3,28 @@ import { escHtml }    from '../utils/escHtml.js';
 import { Lightbox }   from '../components/Lightbox.js';
 import { getUser }    from '../services/auth.js';
 
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function wave(fromBg, toFill, flip = false) {
+  const path = flip
+    ? 'M0,40 C480,0 960,80 1440,40 L1440,80 L0,80 Z'
+    : 'M0,40 C480,80 960,0 1440,40 L1440,80 L0,80 Z';
+  return `<div class="hb-wave" style="background:${fromBg}">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 80"
+         preserveAspectRatio="none" aria-hidden="true" height="80">
+      <path d="${path}" fill="${toFill}"/>
+    </svg>
+  </div>`;
+}
+
+const fmtPrice = (p) => Number(p).toLocaleString('is-IS') + ' kr.';
+
 const CATEGORY_HERO = {
-  roof_boxes:   '/assets/products/hero-roofbox.jpg',
-  roof_racks:   '/assets/products/cross-bars.jpg',
-  accessories:  '/assets/products/cargo-net.jpg',
-  bundles:      '/assets/products/starter-bundle.jpg',
-  tech:         '/assets/products/hero-roofbox.jpg',
-  carpentry:    '/assets/products/hero-roofbox.jpg',
+  roof_boxes:   '/assets/products/titan/5.jpg',
+  roof_racks:   '/assets/products/titan/5.jpg',
+  accessories:  '/assets/products/titan/5.jpg',
+  bundles:      '/assets/products/titan/5.jpg',
+  tech:         '/assets/products/titan/5.jpg',
+  carpentry:    '/assets/products/titan/5.jpg',
 };
 
 export class ProjectDetailView {
@@ -25,6 +40,9 @@ export class ProjectDetailView {
     this._view            = null;
     this._onAuthChange    = null;
     this._actionsAbort    = null; // aborted on each re-render to avoid stacking listeners
+    this._revealObs       = null;
+    this._counterObs      = null;
+    this._countersAnimated = false;
   }
 
   async render() {
@@ -67,6 +85,9 @@ export class ProjectDetailView {
 
   _renderContent() {
     if (this._lb) { this._lb.destroy(); this._lb = null; }
+    if (this._revealObs) { this._revealObs.disconnect(); this._revealObs = null; }
+    if (this._counterObs) { this._counterObs.disconnect(); this._counterObs = null; }
+    this._countersAnimated = false;
 
     // Abort previous view-level listeners before re-rendering to prevent stacking
     if (this._actionsAbort) this._actionsAbort.abort();
@@ -82,6 +103,8 @@ export class ProjectDetailView {
 
     if (!this._editMode) {
       this._attachGallery(this._view);
+      this._initScrollReveal(this._view);
+      this._initCounters(this._view);
     }
     this._attachEventHandlers(this._view, canEdit, canDelete, this._actionsAbort.signal);
   }
@@ -113,102 +136,227 @@ export class ProjectDetailView {
   }
 
   _buildPage(p, canEdit) {
-    const heroImg  = p.image_url || CATEGORY_HERO[p.category] || CATEGORY_HERO.tech;
-    const hasMedia = this._media.length > 0;
+    const heroImg = p.image_url || CATEGORY_HERO[p.category] || CATEGORY_HERO.tech;
 
-    // Keep _media in the same order the Lightbox will walk through, so that
-    // data-gallery-index values match the array indices passed to the Lightbox.
+    // Keep _media in the same order the Lightbox will walk through
     this._media = this._flatInGroupOrder();
+    const buckets = this._groupBySection();
+    let _gi = 0; // global gallery index for lightbox alignment (used via giMap)
 
-    // Non-empty buckets only. If the only bucket is Ungrouped AND there are no
-    // named sections at all, skip the heading entirely so legacy projects look
-    // exactly like they did before sections existed.
-    const buckets = this._groupBySection().filter(g => g.items.length);
-    const legacyFlat = buckets.length === 1 && buckets[0].section === null && this._sections.length === 0;
-    let globalIndex = 0;
+    // Separate buckets by role
+    const ungrouped = buckets.find(b => b.section === null) || { items: [] };
+    const named = buckets.filter(b => b.section !== null && b.items.length);
 
-    // Video block — rendered on either side of the gallery, but only when
-    // there is at least one video (view mode hides empty blocks entirely).
-    const hasVideos     = this._videos.length > 0;
+    // Find special sections by name pattern; remaining become feature sections
+    const heroSec = named.find(b => /hero/i.test(b.section.name));
+    const specSec = named.find(b => /spec|dimension/i.test(b.section.name));
+    const featureSecs = named.filter(b => b !== heroSec && b !== specSec);
+
+    // Hero section companion image (second image in Hero Showcase, if any)
+    const introImage = heroSec && heroSec.items.length > 1 ? heroSec.items[1] : null;
+
+    const hasPrice = p.price && Number(p.price) > 0;
+    const onSale = hasPrice && p.compare_at_price && Number(p.compare_at_price) > Number(p.price);
+    const inStock = p.stock_quantity > 0;
+    const catLabel = (p.category || '').replace(/_/g, ' ');
+
+    // Video block
+    const hasVideos = this._videos.length > 0;
     const videoPosition = p.video_section_position || 'above_gallery';
-    const videoBlock    = hasVideos ? this._buildVideoBlockView() : '';
+    const videoBlock = hasVideos ? this._buildVideoBlockView() : '';
+
+    // ── Build the index-aligned HTML ──
+    // We must iterate media in _flatInGroupOrder order to keep gi in sync.
+    // Walk through each bucket in the same order as _flatInGroupOrder.
+    const allBucketsOrdered = this._groupBySection();
+
+    // Pre-compute gi offsets for each bucket
+    const bucketOffsets = new Map();
+    let offset = 0;
+    for (const b of allBucketsOrdered) {
+      bucketOffsets.set(b.section ? b.section.id : null, offset);
+      offset += b.items.length;
+    }
+
+    // Helper to render a clickable image with correct gallery index
+    const img = (item, idx, cls = '') => `
+      <img class="${cls || 'pds-feature__img'}"
+           src="${escHtml(item.file_path)}"
+           alt="${item.caption ? escHtml(item.caption) : `Photo ${idx + 1}`}"
+           loading="lazy"
+           data-gallery-index="${idx}"
+           tabindex="0"
+           role="button"
+           aria-label="Open photo ${idx + 1}">`;
+
+    // ── Render sections, tracking global index ──
+    // We must iterate in the exact _flatInGroupOrder order.
+    // That order is: ungrouped first, then sections in sort_order.
+    // So we assign gi to each bucket's items sequentially.
+
+    // Build gi map: item.id → global index
+    const giMap = new Map();
+    let gIdx = 0;
+    for (const m of this._media) {
+      giMap.set(m.id, gIdx++);
+    }
+
+    // Helper using giMap
+    const imgM = (item, cls = '') => {
+      const idx = giMap.get(item.id);
+      return img(item, idx, cls);
+    };
+
+    // ── Feature section builder ──
+    const featureHtml = featureSecs.map((b, i) => {
+      const flip = i % 2 === 1;
+      const sec = b.section;
+      const desc = sec.description && sec.description.trim();
+      const gridCls = b.items.length === 1 ? 'pds-feature__images--single'
+                    : b.items.length === 3 ? 'pds-feature__images--triple'
+                    : '';
+      const bgNum = (i % 2 === 0) ? '1' : '2';
+      const bgColor = bgNum === '1' ? '#040c1a' : '#060e1c';
+
+
+      return `
+        ${wave(i === 0 ? '#040c1a' : (i % 2 === 0 ? '#060e1c' : '#040c1a'), bgColor, i % 2 === 1)}
+        <section class="hb-section hb-section--${bgNum} ${flip ? 'pds-feature--reverse' : ''}">
+          <div class="hb-inner">
+            <div class="hb-two-col">
+              <div class="pds-feature__images ${gridCls} hb-reveal ${flip ? 'hb-reveal--right' : 'hb-reveal--left'}">
+                ${b.items.map(item => imgM(item)).join('')}
+              </div>
+              <div>
+                <span class="hb-eyebrow hb-reveal">${escHtml(sec.name)}</span>
+                <h2 class="hb-title hb-reveal hb-d1">${escHtml(sec.name)}</h2>
+                ${desc ? `<p class="hb-body hb-reveal hb-d2">${escHtml(desc)}</p>` : ''}
+              </div>
+            </div>
+          </div>
+        </section>`;
+    }).join('');
+
+    // Last feature bg color for wave continuity
+    const lastFeatureBg = featureSecs.length % 2 === 0 ? '#040c1a' : '#060e1c';
 
     return `
-      <div class="pd-hero">
-        <div class="pd-hero__bg" style="background-image:url('${escHtml(heroImg)}')"></div>
-        <div class="pd-hero__overlay"></div>
-        <div class="pd-hero__content">
-          <a href="#/projects" class="pd-back-link">&#x2190; All Projects</a>
-          <div class="pd-hero__meta">
-            <span class="badge badge--${escHtml(p.category)}">${escHtml(p.category)}</span>
-            <span class="pd-hero__year">${p.year}</span>
-            ${p.featured ? '<span class="pd-hero__featured">&#x2605; Featured</span>' : ''}
+      <!-- ── Hero ── -->
+      <section class="pds-hero">
+        <div class="pds-hero__bg" style="background-image:url('${escHtml(heroImg)}')"></div>
+        <div class="pds-hero__overlay"></div>
+        <div class="pds-hero__content">
+          <a href="#/projects" class="pd-back-link">&#x2190; All Products</a>
+          <span class="hb-eyebrow" style="margin-bottom:0.8rem;display:inline-block">${escHtml(catLabel)}</span>
+          <h1 class="pds-hero__title">${escHtml(p.title)}</h1>
+          ${hasPrice ? `
+          <div class="pds-hero__price-badge">${fmtPrice(p.price)}</div>
+          ${onSale ? `<span class="pds-hero__compare">${fmtPrice(p.compare_at_price)}</span>` : ''}
+          ` : ''}
+          <div class="hb-hero__scroll" aria-hidden="true">
+            <span>Scroll</span>
+            <div class="hb-hero__scroll-arrow"></div>
           </div>
-          <h1 class="pd-hero__title">${escHtml(p.title)}</h1>
         </div>
         ${canEdit ? `
         <div class="pd-edit-toggle-wrap">
           <button class="pd-edit-toggle" type="button" aria-label="Enter edit mode" data-testid="edit-project-btn">
-            &#x270E; Edit Project
+            &#x270E; Edit Product
           </button>
         </div>` : ''}
-      </div>
+      </section>
 
-      <div class="pd-body">
-        <div class="pd-body__inner">
+      ${wave('#000', '#040c1a')}
 
-          <section class="pd-section" aria-label="Project description">
-            <p class="pd-lead">${escHtml(p.description)}</p>
-            <p class="pd-para">
-              Every detail was approached with the same care applied across all work at
-              Halli Smiley — whether hand-selecting timber grain for a cabinet face or
-              architecting a database schema built to survive years of production traffic
-              without a rewrite.
-            </p>
-            <p class="pd-para">
-              The result is a finished piece that balances function and aesthetic, built
-              to outlast trends and hold up under real-world use.
-            </p>
-          </section>
-
-          ${p.tools_used && p.tools_used.length ? `
-          <section class="pd-section" aria-label="Tools used">
-            <h2 class="pd-section__heading">Tools &amp; Technologies</h2>
-            <div class="pd-tools">
-              ${p.tools_used.map(t => `<span class="tool-tag tool-tag--large">${escHtml(t)}</span>`).join('')}
+      <!-- ── Intro ── -->
+      <section class="hb-section hb-section--1 pds-intro">
+        <div class="hb-inner">
+          <div class="hb-two-col">
+            <div>
+              <span class="hb-eyebrow hb-reveal">${escHtml(p.title)}</span>
+              <h2 class="hb-title hb-reveal hb-d1">${escHtml(p.title)}</h2>
+              <p class="hb-body hb-reveal hb-d2">${escHtml(p.description)}</p>
+              ${p.tools_used && p.tools_used.length ? `
+              <div class="pds-tags hb-reveal hb-d3">
+                ${p.tools_used.map(t => `<span class="pds-tag">${escHtml(t)}</span>`).join('')}
+              </div>` : ''}
             </div>
-          </section>` : ''}
-
-          ${videoPosition === 'above_gallery' ? videoBlock : ''}
-
-          ${hasMedia ? `
-          <section class="pd-section pd-gallery-section" aria-label="Project gallery">
-            <h2 class="pd-section__heading">Project Gallery</h2>
-            ${legacyFlat ? `
-            <div class="gallery-grid" role="list">
-              ${buckets[0].items.map(item => this._buildGridItem(item, globalIndex++)).join('')}
+            <div class="hb-reveal hb-reveal--right hb-d2" style="display:flex;align-items:center;justify-content:center">
+              ${introImage ? imgM(introImage, 'pds-intro__img') : `<img class="pds-intro__img" src="${escHtml(heroImg)}" alt="${escHtml(p.title)}" loading="lazy">`}
             </div>
-            ` : buckets.map(g => {
-              const desc = g.section && g.section.description && g.section.description.trim();
-              return `
-              <section class="pd-gallery-group" data-section-id="${g.section ? g.section.id : ''}">
-                <h3 class="pd-gallery-group__heading">${escHtml(g.section ? g.section.name : 'Ungrouped')}</h3>
-                ${desc ? `<p class="pd-gallery-group__description">${escHtml(desc)}</p>` : ''}
-                <div class="gallery-grid" role="list">
-                  ${g.items.map(item => this._buildGridItem(item, globalIndex++)).join('')}
-                </div>
-              </section>
-              `;
-            }).join('')}
-          </section>` : ''}
-
-          ${videoPosition === 'below_gallery' ? videoBlock : ''}
-
-          <div class="pd-back-wrap">
-            <a href="#/projects" class="pd-back-btn">&#x2190; Back to All Projects</a>
           </div>
-
         </div>
+      </section>
+
+      <!-- ── Feature sections ── -->
+      ${featureHtml}
+
+      ${videoPosition === 'above_gallery' ? `${wave(lastFeatureBg, '#030a16', featureSecs.length % 2 === 1)}${videoBlock}` : ''}
+
+      <!-- ── Specs / Counters ── -->
+      ${wave(featureSecs.length > 0 ? lastFeatureBg : '#040c1a', '#080700', true)}
+      <section class="hb-section hb-section--amber hb-counters pds-specs" aria-label="Product specifications">
+        <div class="hb-counters__grid">
+          <div class="hb-reveal hb-reveal--scale">
+            <span class="hb-counter__num" data-counter="cap" data-target="580L">0</span>
+            <span class="hb-counter__label">Capacity</span>
+          </div>
+          <div class="hb-reveal hb-reveal--scale hb-d1">
+            <span class="hb-counter__num" data-counter="weight" data-target="23kg">0</span>
+            <span class="hb-counter__label">Box Weight</span>
+          </div>
+          <div class="hb-reveal hb-reveal--scale hb-d2">
+            <span class="hb-counter__num" data-counter="warranty" data-target="5yr">0</span>
+            <span class="hb-counter__label">Warranty</span>
+          </div>
+          <div class="hb-reveal hb-reveal--scale hb-d3">
+            <span class="hb-counter__num" data-counter="length" data-target="208cm">0</span>
+            <span class="hb-counter__label">Length</span>
+          </div>
+        </div>
+        ${specSec && specSec.items.length ? `
+        <div class="pds-specs__images hb-reveal hb-d2">
+          ${specSec.items.map(item => imgM(item, 'pds-specs__img')).join('')}
+        </div>` : ''}
+      </section>
+      ${wave('#080700', '#040c1a')}
+
+      ${videoPosition === 'below_gallery' ? videoBlock : ''}
+
+      <!-- ── Remaining gallery ── -->
+      ${ungrouped.items.length ? `
+      <section class="hb-section hb-section--1 pds-gallery">
+        <div class="hb-inner">
+          <span class="hb-eyebrow hb-reveal">Gallery</span>
+          <h2 class="hb-title hb-reveal hb-d1">More Views</h2>
+          <div class="gallery-grid hb-reveal hb-d2" role="list">
+            ${ungrouped.items.map(item => this._buildGridItem(item, giMap.get(item.id))).join('')}
+          </div>
+        </div>
+      </section>
+      ${wave('#040c1a', '#060e1c', true)}` : ''}
+
+      <!-- ── CTA ── -->
+      <section class="hb-section hb-section--2" style="text-align:center">
+        <div class="hb-inner" style="max-width:700px;margin:0 auto;padding:0 clamp(20px,6vw,80px)">
+          <span class="hb-eyebrow hb-reveal">Ready to Go?</span>
+          <h2 class="hb-title hb-reveal hb-d1">${escHtml(p.title)}</h2>
+          ${hasPrice ? `
+          <div class="pds-cta__price hb-reveal hb-d2">${fmtPrice(p.price)}</div>
+          ${onSale ? `<div class="pds-cta__compare hb-reveal hb-d2">${fmtPrice(p.compare_at_price)}</div>` : ''}
+          <div class="pds-cta__stock ${inStock ? 'pds-cta__stock--in' : 'pds-cta__stock--out'} hb-reveal hb-d3">
+            ${inStock ? 'In Stock' : 'Out of Stock'}
+          </div>
+          <button class="pds-cta__btn hb-reveal hb-d4"
+                  data-action="add-to-cart" data-project-id="${p.id}"
+                  ${!inStock ? 'disabled' : ''}>
+            Add to Cart
+          </button>` : ''}
+        </div>
+      </section>
+
+      <div class="pds-back">
+        <a href="#/projects">&#x2190; Back to All Products</a>
       </div>
     `;
   }
@@ -249,8 +397,12 @@ export class ProjectDetailView {
           <a href="#/projects" class="pd-back-link">&#x2190; All Projects</a>
           <div class="pd-hero__meta" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <select class="pd-edit-select" id="pd-edit-category" name="category">
-              <option value="carpentry" ${p.category === 'carpentry' ? 'selected' : ''}>Carpentry</option>
-              <option value="tech"      ${p.category === 'tech'      ? 'selected' : ''}>Tech</option>
+              <option value="roof_boxes"  ${p.category === 'roof_boxes'  ? 'selected' : ''}>Roof Boxes</option>
+              <option value="roof_racks"  ${p.category === 'roof_racks'  ? 'selected' : ''}>Roof Racks</option>
+              <option value="accessories" ${p.category === 'accessories' ? 'selected' : ''}>Accessories</option>
+              <option value="bundles"     ${p.category === 'bundles'     ? 'selected' : ''}>Bundles</option>
+              <option value="tech"        ${p.category === 'tech'        ? 'selected' : ''}>Tech</option>
+              <option value="carpentry"   ${p.category === 'carpentry'   ? 'selected' : ''}>Carpentry</option>
             </select>
             <input class="pd-edit-year" id="pd-edit-year" name="year"
               type="number" min="1900" max="2100" value="${p.year}">
@@ -613,7 +765,31 @@ export class ProjectDetailView {
       });
     }
 
-    if (!this._editMode) return;
+    // Read-only mode: add-to-cart
+    if (!this._editMode) {
+      view.addEventListener('click', async e => {
+        const btn = e.target.closest('[data-action="add-to-cart"]');
+        if (!btn) return;
+        btn.disabled = true;
+        btn.textContent = 'Adding…';
+        try {
+          const { cartApi } = await import('../api/projectApi.js');
+          await cartApi.addItem(this._project.id);
+          btn.textContent = 'Added ✓';
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = 'Add to Cart';
+          }, 2000);
+        } catch (err) {
+          btn.textContent = err.message || 'Error';
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = 'Add to Cart';
+          }, 2000);
+        }
+      }, { signal });
+      return;
+    }
 
     // Edit mode: Save
     view.querySelector('#pd-save-btn').addEventListener('click', () => this._saveChanges(view));
@@ -1202,6 +1378,66 @@ export class ProjectDetailView {
     el.className   = `pd-upload-status${type ? ` pd-upload-status--${type}` : ''}`;
   }
 
+  // ── Scroll-reveal via IntersectionObserver ──────────────────────────────
+
+  _initScrollReveal(view) {
+    const els = view.querySelectorAll('.hb-reveal');
+    if (!els.length) return;
+
+    this._revealObs = new IntersectionObserver(
+      entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-visible');
+            this._revealObs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    );
+
+    els.forEach(el => this._revealObs.observe(el));
+  }
+
+  // ── Counter animations ────────────────────────────────────────────────
+
+  _initCounters(view) {
+    const counters = view.querySelectorAll('[data-counter]');
+    if (!counters.length) return;
+
+    this._counterObs = new IntersectionObserver(
+      entries => {
+        if (this._countersAnimated) return;
+        if (entries.some(e => e.isIntersecting)) {
+          this._countersAnimated = true;
+          counters.forEach(el => this._animateCounter(el, el.dataset.target));
+          this._counterObs.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    counters.forEach(el => this._counterObs.observe(el));
+  }
+
+  _animateCounter(el, target) {
+    const m = String(target).match(/^(\d+(?:\.\d+)?)(.*)/);
+    if (!m) { el.textContent = target; return; }
+
+    const num    = parseFloat(m[1]);
+    const suffix = m[2];
+    const dur    = 1400;
+    const t0     = performance.now();
+
+    const step = ts => {
+      const p = Math.min((ts - t0) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3); // cubic easeOut
+      el.textContent = Math.round(num * e) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
   // Called by the router when navigating away, to clean up event listeners
   destroy() {
     if (this._onAuthChange) {
@@ -1215,6 +1451,14 @@ export class ProjectDetailView {
     if (this._lb) {
       this._lb.destroy();
       this._lb = null;
+    }
+    if (this._revealObs) {
+      this._revealObs.disconnect();
+      this._revealObs = null;
+    }
+    if (this._counterObs) {
+      this._counterObs.disconnect();
+      this._counterObs = null;
     }
   }
 }

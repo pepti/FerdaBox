@@ -1,10 +1,10 @@
 const CATEGORY_IMAGES = {
-  roof_boxes:   '/assets/products/explorer-400l.jpg',
-  roof_racks:   '/assets/products/cross-bars.jpg',
-  accessories:  '/assets/products/cargo-net.jpg',
-  bundles:      '/assets/products/starter-bundle.jpg',
-  tech:         '/assets/products/explorer-400l.jpg',
-  carpentry:    '/assets/products/explorer-400l.jpg',
+  roof_boxes:   '/assets/products/titan/5.jpg',
+  roof_racks:   '/assets/products/titan/5.jpg',
+  accessories:  '/assets/products/titan/5.jpg',
+  bundles:      '/assets/products/titan/5.jpg',
+  tech:         '/assets/products/titan/5.jpg',
+  carpentry:    '/assets/products/titan/5.jpg',
 };
 
 import { escHtml } from '../utils/escHtml.js';

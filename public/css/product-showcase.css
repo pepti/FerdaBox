@@ -1,0 +1,323 @@
+/* ── Product Detail Showcase (pds-) ─────────────────────────────────────────
+   Cinematic product story layout inspired by the About page.
+   Reuses hb- classes from halli-bio.css for sections, reveals, counters.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── Hero ──────────────────────────────────────────────────────────────── */
+.pds-hero {
+  position: relative;
+  height: 100vh;
+  min-height: 600px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+}
+
+.pds-hero__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 40%;
+  animation: subtleDrift 20s ease-in-out infinite alternate;
+}
+
+.pds-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.72) 0%,
+    rgba(4,12,26,0.50) 35%,
+    rgba(0,0,0,0.92) 100%
+  );
+}
+
+.pds-hero__content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 0 1.5rem clamp(60px, 8vh, 110px);
+}
+
+.pds-hero__title {
+  font-family: var(--font-display, 'Cinzel', Georgia, serif);
+  font-size: clamp(48px, 10vw, 130px);
+  color: #F0E6D3;
+  letter-spacing: 0.12em;
+  line-height: 1.05;
+  text-shadow: 0 0 120px rgba(200,170,110,0.3);
+  margin-bottom: 1.2rem;
+}
+
+.pds-hero__price-badge {
+  display: inline-block;
+  padding: 0.65rem 2rem;
+  background: var(--gold, #C8AA6E);
+  color: #040c1a;
+  font-family: var(--font-display, 'Cinzel', Georgia, serif);
+  font-size: clamp(16px, 2.5vw, 26px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  animation: hb-fadein 0.8s ease 1.2s forwards;
+}
+
+.pds-hero__compare {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.72rem;
+  color: #A9B4C0;
+  letter-spacing: 0.15em;
+  text-decoration: line-through;
+  opacity: 0;
+  animation: hb-fadein 0.6s ease 1.6s forwards;
+}
+
+/* Edit toggle positioned in hero */
+.pds-hero .pd-edit-toggle-wrap {
+  position: absolute;
+  top: clamp(70px, 10vh, 100px);
+  right: 1.5rem;
+  z-index: 2;
+}
+
+/* ── Feature sections (two-column image + text) ────────────────────────── */
+.pds-feature__images {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.pds-feature__images--single {
+  grid-template-columns: 1fr;
+}
+
+.pds-feature__images--triple {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+}
+
+.pds-feature__images--triple > :first-child {
+  grid-column: 1 / -1;
+}
+
+.pds-feature__img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border: 1px solid rgba(200,170,110,0.1);
+  cursor: pointer;
+  transition: transform 0.4s ease, border-color 0.3s;
+}
+
+.pds-feature__img:hover {
+  transform: scale(1.03);
+  border-color: rgba(200,170,110,0.4);
+}
+
+/* Reverse column order for alternating layout */
+.pds-feature--reverse .hb-two-col {
+  direction: rtl;
+}
+.pds-feature--reverse .hb-two-col > * {
+  direction: ltr;
+}
+
+/* ── Full-width showcase images ────────────────────────────────────────── */
+.pds-showcase {
+  width: 100%;
+  overflow: hidden;
+  background: #030a16;
+}
+
+.pds-showcase__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+}
+
+.pds-showcase__grid--single {
+  grid-template-columns: 1fr;
+}
+
+.pds-showcase__img {
+  width: 100%;
+  height: clamp(280px, 45vw, 550px);
+  object-fit: cover;
+  cursor: pointer;
+  opacity: 0.88;
+  transition: opacity 0.4s ease;
+  display: block;
+}
+
+.pds-showcase__img:hover {
+  opacity: 1;
+}
+
+/* ── Spec counters section ─────────────────────────────────────────────── */
+.pds-specs .hb-counters__grid {
+  max-width: 1000px;
+}
+
+.pds-specs__images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.8rem;
+  max-width: 900px;
+  margin: 3rem auto 0;
+  padding: 0 clamp(20px, 6vw, 80px);
+}
+
+.pds-specs__img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border: 1px solid rgba(200,170,110,0.12);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.pds-specs__img:hover {
+  transform: scale(1.02);
+}
+
+/* ── CTA (add to cart) section ─────────────────────────────────────────── */
+.pds-cta__price {
+  font-family: var(--font-display, 'Cinzel', Georgia, serif);
+  font-size: clamp(32px, 6vw, 58px);
+  color: var(--gold, #C8AA6E);
+  margin-bottom: 0.5rem;
+}
+
+.pds-cta__compare {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.85rem;
+  color: #A9B4C0;
+  text-decoration: line-through;
+  margin-bottom: 0.8rem;
+}
+
+.pds-cta__stock {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-bottom: 2.2rem;
+}
+
+.pds-cta__stock--in  { color: #4ade80; }
+.pds-cta__stock--out { color: #f87171; }
+
+.pds-cta__btn {
+  border: 1px solid var(--gold-dark, #785A28);
+  background: transparent;
+  color: var(--gold, #C8AA6E);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  padding: 0.95rem 2.8rem;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+
+.pds-cta__btn:hover {
+  background: var(--gold, #C8AA6E);
+  color: #040c1a;
+}
+
+.pds-cta__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Tags section ──────────────────────────────────────────────────────── */
+.pds-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+.pds-tag {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold, #C8AA6E);
+  border: 1px solid rgba(200,170,110,0.25);
+  padding: 0.4rem 0.9rem;
+}
+
+/* ── Gallery section at bottom ─────────────────────────────────────────── */
+.pds-gallery .gallery-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Back link in showcase ─────────────────────────────────────────────── */
+.pds-back {
+  text-align: center;
+  padding: 3rem 1rem 5rem;
+  background: #040c1a;
+}
+
+.pds-back a {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold, #C8AA6E);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.pds-back a:hover {
+  color: #F0E6D3;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .pds-hero {
+    min-height: 500px;
+  }
+  .pds-hero__title {
+    font-size: clamp(36px, 12vw, 64px);
+  }
+  .pds-feature--reverse .hb-two-col {
+    direction: ltr;
+  }
+  .pds-feature__images {
+    grid-template-columns: 1fr;
+  }
+  .pds-feature__images--triple > :first-child {
+    grid-column: 1;
+  }
+  .pds-showcase__grid {
+    grid-template-columns: 1fr;
+  }
+  .pds-specs__images {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .pds-specs__images {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .pds-hero__bg {
+    animation: none;
+  }
+  .pds-hero__price-badge,
+  .pds-hero__compare {
+    animation: none;
+    opacity: 1;
+  }
+}

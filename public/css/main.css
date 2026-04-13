@@ -12,6 +12,7 @@
 @import './news.css';
 @import './halli-bio.css';
 @import './shop.css';
+@import './product-showcase.css';
 
 body {
   font-family: var(--font-sans);
