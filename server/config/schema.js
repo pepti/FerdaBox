@@ -374,6 +374,16 @@ const migrations = [
       `CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id)`,
     ],
   },
+  {
+    // i18n: Icelandic translation columns for projects and sections
+    name: '018_i18n_columns',
+    statements: [
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS title_is TEXT`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS description_is TEXT`,
+      `ALTER TABLE project_sections ADD COLUMN IF NOT EXISTS name_is TEXT`,
+      `ALTER TABLE project_sections ADD COLUMN IF NOT EXISTS description_is TEXT`,
+    ],
+  },
 ];
 
 module.exports = { migrations };

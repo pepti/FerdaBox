@@ -2,7 +2,7 @@ import { projectApi } from '../api/projectApi.js';
 import { escHtml }    from '../utils/escHtml.js';
 import { Lightbox }   from '../components/Lightbox.js';
 import { getUser }    from '../services/auth.js';
-import { t }          from '../i18n/index.js';
+import { t, getLang }  from '../i18n/index.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function wave(fromBg, toFill, flip = false) {
@@ -138,6 +138,13 @@ export class ProjectDetailView {
 
   _buildPage(p, canEdit) {
     const heroImg = p.image_url || CATEGORY_HERO[p.category] || CATEGORY_HERO.tech;
+    const isIcelandic = getLang() === 'is';
+
+    // Language-aware helpers for project and section fields
+    const pTitle = (isIcelandic && p.title_is) || p.title;
+    const pDesc  = (isIcelandic && p.description_is) || p.description;
+    const secName = (sec) => (isIcelandic && sec.name_is) || sec.name;
+    const secDesc = (sec) => (isIcelandic && sec.description_is) || sec.description;
 
     // Keep _media in the same order the Lightbox will walk through
     this._media = this._flatInGroupOrder();
@@ -159,7 +166,8 @@ export class ProjectDetailView {
     const hasPrice = p.price && Number(p.price) > 0;
     const onSale = hasPrice && p.compare_at_price && Number(p.compare_at_price) > Number(p.price);
     const inStock = p.stock_quantity > 0;
-    const catLabel = (p.category || '').replace(/_/g, ' ');
+    const catMap = { roof_boxes: 'roofBoxes', roof_racks: 'roofRacks', accessories: 'accessories', bundles: 'bundles' };
+    const catLabel = catMap[p.category] ? t(`products.${catMap[p.category]}`) : (p.category || '').replace(/_/g, ' ');
 
     // Video block
     const hasVideos = this._videos.length > 0;
@@ -212,7 +220,7 @@ export class ProjectDetailView {
     const featureHtml = featureSecs.map((b, i) => {
       const flip = i % 2 === 1;
       const sec = b.section;
-      const desc = sec.description && sec.description.trim();
+      const desc = secDesc(sec) && secDesc(sec).trim();
       const gridCls = b.items.length === 1 ? 'pds-feature__images--single'
                     : b.items.length === 3 ? 'pds-feature__images--triple'
                     : '';
@@ -229,8 +237,8 @@ export class ProjectDetailView {
                 ${b.items.map(item => imgM(item)).join('')}
               </div>
               <div>
-                <span class="hb-eyebrow hb-reveal">${escHtml(sec.name)}</span>
-                <h2 class="hb-title hb-reveal hb-d1">${escHtml(sec.name)}</h2>
+                <span class="hb-eyebrow hb-reveal">${escHtml(secName(sec))}</span>
+                <h2 class="hb-title hb-reveal hb-d1">${escHtml(secName(sec))}</h2>
                 ${desc ? `<p class="hb-body hb-reveal hb-d2">${escHtml(desc)}</p>` : ''}
               </div>
             </div>
@@ -249,7 +257,7 @@ export class ProjectDetailView {
         <div class="pds-hero__content">
           <a href="#/projects" class="pd-back-link">${t('products.allProducts')}</a>
           <span class="hb-eyebrow" style="margin-bottom:0.8rem;display:inline-block">${escHtml(catLabel)}</span>
-          <h1 class="pds-hero__title">${escHtml(p.title)}</h1>
+          <h1 class="pds-hero__title">${escHtml(pTitle)}</h1>
           ${hasPrice ? `
           <div class="pds-hero__price-badge">${fmtPrice(p.price)}</div>
           ${onSale ? `<span class="pds-hero__compare">${fmtPrice(p.compare_at_price)}</span>` : ''}
@@ -274,16 +282,16 @@ export class ProjectDetailView {
         <div class="hb-inner">
           <div class="hb-two-col">
             <div>
-              <span class="hb-eyebrow hb-reveal">${escHtml(p.title)}</span>
-              <h2 class="hb-title hb-reveal hb-d1">${escHtml(p.title)}</h2>
-              <p class="hb-body hb-reveal hb-d2">${escHtml(p.description)}</p>
+              <span class="hb-eyebrow hb-reveal">${escHtml(pTitle)}</span>
+              <h2 class="hb-title hb-reveal hb-d1">${escHtml(pTitle)}</h2>
+              <p class="hb-body hb-reveal hb-d2">${escHtml(pDesc)}</p>
               ${p.tools_used && p.tools_used.length ? `
               <div class="pds-tags hb-reveal hb-d3">
-                ${p.tools_used.map(t => `<span class="pds-tag">${escHtml(t)}</span>`).join('')}
+                ${p.tools_used.map(tag => `<span class="pds-tag">${escHtml(tag)}</span>`).join('')}
               </div>` : ''}
             </div>
             <div class="hb-reveal hb-reveal--right hb-d2" style="display:flex;align-items:center;justify-content:center">
-              ${introImage ? imgM(introImage, 'pds-intro__img') : `<img class="pds-intro__img" src="${escHtml(heroImg)}" alt="${escHtml(p.title)}" loading="lazy">`}
+              ${introImage ? imgM(introImage, 'pds-intro__img') : `<img class="pds-intro__img" src="${escHtml(heroImg)}" alt="${escHtml(pTitle)}" loading="lazy">`}
             </div>
           </div>
         </div>
@@ -341,7 +349,7 @@ export class ProjectDetailView {
       <section class="hb-section hb-section--2" style="text-align:center">
         <div class="hb-inner" style="max-width:700px;margin:0 auto;padding:0 clamp(20px,6vw,80px)">
           <span class="hb-eyebrow hb-reveal">${t('products.readyToGo')}</span>
-          <h2 class="hb-title hb-reveal hb-d1">${escHtml(p.title)}</h2>
+          <h2 class="hb-title hb-reveal hb-d1">${escHtml(pTitle)}</h2>
           ${hasPrice ? `
           <div class="pds-cta__price hb-reveal hb-d2">${fmtPrice(p.price)}</div>
           ${onSale ? `<div class="pds-cta__compare hb-reveal hb-d2">${fmtPrice(p.compare_at_price)}</div>` : ''}

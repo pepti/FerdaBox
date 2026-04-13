@@ -3,7 +3,7 @@
 const db = require('../config/database');
 
 // Explicit column list — avoids SELECT * so schema changes are explicit
-const COLUMNS = 'id, title, description, category, year, tools_used, image_url, featured, video_section_position, price, compare_at_price, stock_quantity, sku, status, created_at, updated_at';
+const COLUMNS = 'id, title, description, category, year, tools_used, image_url, featured, video_section_position, price, compare_at_price, stock_quantity, sku, status, title_is, description_is, created_at, updated_at';
 
 class Project {
   // ── READ ──────────────────────────────────────────────────────────────────
@@ -61,21 +61,22 @@ class Project {
     const {
       title, description, category, year, tools_used = [], image_url = null, featured = false,
       price = 0, compare_at_price = null, stock_quantity = 0, sku = null, status = 'draft',
+      title_is = null, description_is = null,
     } = data;
     const { rows } = await db.query(
-      `INSERT INTO projects (title, description, category, year, tools_used, image_url, featured, price, compare_at_price, stock_quantity, sku, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `INSERT INTO projects (title, description, category, year, tools_used, image_url, featured, price, compare_at_price, stock_quantity, sku, status, title_is, description_is)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING ${COLUMNS}`,
       [title, description, category, Number(year), tools_used, image_url, Boolean(featured),
        Number(price), compare_at_price != null ? Number(compare_at_price) : null,
-       Number(stock_quantity), sku || null, status]
+       Number(stock_quantity), sku || null, status, title_is, description_is]
     );
     return rows[0];
   }
 
   static async update(id, data) {
     // Build SET clause dynamically — only update provided fields
-    const allowed = ['title', 'description', 'category', 'year', 'tools_used', 'image_url', 'featured', 'video_section_position', 'price', 'compare_at_price', 'stock_quantity', 'sku', 'status'];
+    const allowed = ['title', 'description', 'category', 'year', 'tools_used', 'image_url', 'featured', 'video_section_position', 'price', 'compare_at_price', 'stock_quantity', 'sku', 'status', 'title_is', 'description_is'];
     const sets   = [];
     const params = [];
 
@@ -107,7 +108,7 @@ class Project {
 
 // ── Project sections (named gallery groups) ──────────────────────────────────
 
-const SECTION_COLUMNS = 'id, project_id, name, description, sort_order, created_at';
+const SECTION_COLUMNS = 'id, project_id, name, description, name_is, description_is, sort_order, created_at';
 
 class ProjectSection {
   static async list(projectId) {
@@ -139,8 +140,8 @@ class ProjectSection {
     return rows[0];
   }
 
-  // Partial update — any of { name, description } may be provided
-  static async update(projectId, sectionId, { name, description }) {
+  // Partial update — any of { name, description, name_is, description_is } may be provided
+  static async update(projectId, sectionId, { name, description, name_is, description_is }) {
     const sets = [];
     const params = [];
     if (name !== undefined) {
@@ -150,6 +151,14 @@ class ProjectSection {
     if (description !== undefined) {
       params.push(description);
       sets.push(`description = $${params.length}`);
+    }
+    if (name_is !== undefined) {
+      params.push(name_is);
+      sets.push(`name_is = $${params.length}`);
+    }
+    if (description_is !== undefined) {
+      params.push(description_is);
+      sets.push(`description_is = $${params.length}`);
     }
     if (sets.length === 0) {
       // Nothing to change — return current row

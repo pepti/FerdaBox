@@ -367,8 +367,10 @@ const projectController = {
       if (!project) return res.status(404).json({ error: 'Project not found', code: 404 });
 
       const patch = {};
-      if (req.body.name !== undefined)        patch.name        = req.body.name.trim();
-      if (req.body.description !== undefined) patch.description = req.body.description;
+      if (req.body.name !== undefined)           patch.name           = req.body.name.trim();
+      if (req.body.description !== undefined)    patch.description    = req.body.description;
+      if (req.body.name_is !== undefined)        patch.name_is        = req.body.name_is;
+      if (req.body.description_is !== undefined) patch.description_is = req.body.description_is;
 
       const section = await ProjectSection.update(req.params.id, req.params.sectionId, patch);
       if (!section) return res.status(404).json({ error: 'Section not found', code: 404 });
