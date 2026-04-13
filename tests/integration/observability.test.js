@@ -75,8 +75,8 @@ describe('GET /ready (readiness probe)', () => {
   test('memory check is included with expected fields', async () => {
     const res = await request(app).get('/ready');
     expect(res.body.checks).toHaveProperty('memory');
-    // CI runners may report critical memory under heavy test suites
-    expect(['ok', 'critical']).toContain(res.body.checks.memory.status);
+    // CI runners may report degraded/critical memory under heavy test suites
+    expect(['ok', 'degraded', 'critical']).toContain(res.body.checks.memory.status);
     expect(res.body.checks.memory).toHaveProperty('heapUsedMb');
     expect(res.body.checks.memory).toHaveProperty('heapTotalMb');
   });

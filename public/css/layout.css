@@ -274,16 +274,17 @@
 .not-found__desc { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.7; margin-bottom: var(--sp-6); }
 
 /* ── Mobile nav ── */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .lol-nav { padding: 0 12px; }
   .lol-nav__brand { width: auto; flex-shrink: 0; }
   .lol-nav__right  { width: auto; flex-shrink: 0; gap: 8px; }
 
   .lol-nav__hamburger { display: flex; }
 
-  /* Hide lang toggle from top bar; show inside mobile menu instead */
+  /* Hide lang toggle and auth from top bar; show inside mobile menu instead */
   .lol-nav__right > .lol-nav__lang { display: none; }
-  .lol-nav__center > .lol-nav__lang-mobile { display: flex; }
+  .lol-nav__right > .lol-nav__auth { display: none; }
+  .lol-nav__center > .lol-nav__lang.lol-nav__lang-mobile { display: flex; }
 
   .lol-nav__center {
     display: none;
@@ -304,8 +305,8 @@
 }
 
 /* Language toggle inside mobile menu — hidden on desktop */
-.lol-nav__lang-mobile {
+.lol-nav__lang.lol-nav__lang-mobile {
   display: none;
-  gap: 2px; padding: 10px 24px;
+  gap: 2px; padding: 10px 24px; margin-right: 0;
   background: rgba(255,255,255,0.03);
 }
