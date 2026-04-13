@@ -2,6 +2,7 @@ import { projectApi } from '../api/projectApi.js';
 import { escHtml }    from '../utils/escHtml.js';
 import { Lightbox }   from '../components/Lightbox.js';
 import { getUser }    from '../services/auth.js';
+import { t }          from '../i18n/index.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function wave(fromBg, toFill, flip = false) {
@@ -246,7 +247,7 @@ export class ProjectDetailView {
         <div class="pds-hero__bg" style="background-image:url('${escHtml(heroImg)}')"></div>
         <div class="pds-hero__overlay"></div>
         <div class="pds-hero__content">
-          <a href="#/projects" class="pd-back-link">&#x2190; All Products</a>
+          <a href="#/projects" class="pd-back-link">${t('products.allProducts')}</a>
           <span class="hb-eyebrow" style="margin-bottom:0.8rem;display:inline-block">${escHtml(catLabel)}</span>
           <h1 class="pds-hero__title">${escHtml(p.title)}</h1>
           ${hasPrice ? `
@@ -254,14 +255,14 @@ export class ProjectDetailView {
           ${onSale ? `<span class="pds-hero__compare">${fmtPrice(p.compare_at_price)}</span>` : ''}
           ` : ''}
           <div class="hb-hero__scroll" aria-hidden="true">
-            <span>Scroll</span>
+            <span>${t('products.scroll')}</span>
             <div class="hb-hero__scroll-arrow"></div>
           </div>
         </div>
         ${canEdit ? `
         <div class="pd-edit-toggle-wrap">
           <button class="pd-edit-toggle" type="button" aria-label="Enter edit mode" data-testid="edit-project-btn">
-            &#x270E; Edit Product
+            ${t('products.editProduct')}
           </button>
         </div>` : ''}
       </section>
@@ -299,19 +300,19 @@ export class ProjectDetailView {
         <div class="hb-counters__grid">
           <div class="hb-reveal hb-reveal--scale">
             <span class="hb-counter__num" data-counter="cap" data-target="580L">0</span>
-            <span class="hb-counter__label">Capacity</span>
+            <span class="hb-counter__label">${t('products.capacity')}</span>
           </div>
           <div class="hb-reveal hb-reveal--scale hb-d1">
             <span class="hb-counter__num" data-counter="weight" data-target="23kg">0</span>
-            <span class="hb-counter__label">Box Weight</span>
+            <span class="hb-counter__label">${t('products.boxWeight')}</span>
           </div>
           <div class="hb-reveal hb-reveal--scale hb-d2">
             <span class="hb-counter__num" data-counter="warranty" data-target="5yr">0</span>
-            <span class="hb-counter__label">Warranty</span>
+            <span class="hb-counter__label">${t('products.warranty')}</span>
           </div>
           <div class="hb-reveal hb-reveal--scale hb-d3">
             <span class="hb-counter__num" data-counter="length" data-target="208cm">0</span>
-            <span class="hb-counter__label">Length</span>
+            <span class="hb-counter__label">${t('products.length')}</span>
           </div>
         </div>
         ${specSec && specSec.items.length ? `
@@ -327,8 +328,8 @@ export class ProjectDetailView {
       ${ungrouped.items.length ? `
       <section class="hb-section hb-section--1 pds-gallery">
         <div class="hb-inner">
-          <span class="hb-eyebrow hb-reveal">Gallery</span>
-          <h2 class="hb-title hb-reveal hb-d1">More Views</h2>
+          <span class="hb-eyebrow hb-reveal">${t('products.gallery')}</span>
+          <h2 class="hb-title hb-reveal hb-d1">${t('products.moreViews')}</h2>
           <div class="gallery-grid hb-reveal hb-d2" role="list">
             ${ungrouped.items.map(item => this._buildGridItem(item, giMap.get(item.id))).join('')}
           </div>
@@ -339,24 +340,24 @@ export class ProjectDetailView {
       <!-- ── CTA ── -->
       <section class="hb-section hb-section--2" style="text-align:center">
         <div class="hb-inner" style="max-width:700px;margin:0 auto;padding:0 clamp(20px,6vw,80px)">
-          <span class="hb-eyebrow hb-reveal">Ready to Go?</span>
+          <span class="hb-eyebrow hb-reveal">${t('products.readyToGo')}</span>
           <h2 class="hb-title hb-reveal hb-d1">${escHtml(p.title)}</h2>
           ${hasPrice ? `
           <div class="pds-cta__price hb-reveal hb-d2">${fmtPrice(p.price)}</div>
           ${onSale ? `<div class="pds-cta__compare hb-reveal hb-d2">${fmtPrice(p.compare_at_price)}</div>` : ''}
           <div class="pds-cta__stock ${inStock ? 'pds-cta__stock--in' : 'pds-cta__stock--out'} hb-reveal hb-d3">
-            ${inStock ? 'In Stock' : 'Out of Stock'}
+            ${inStock ? t('products.inStock') : t('products.outOfStock')}
           </div>
           <button class="pds-cta__btn hb-reveal hb-d4"
                   data-action="add-to-cart" data-project-id="${p.id}"
                   ${!inStock ? 'disabled' : ''}>
-            Add to Cart
+            ${t('products.addToCart')}
           </button>` : ''}
         </div>
       </section>
 
       <div class="pds-back">
-        <a href="#/projects">&#x2190; Back to All Products</a>
+        <a href="#/projects">${t('products.backToAllProducts')}</a>
       </div>
     `;
   }
@@ -771,20 +772,20 @@ export class ProjectDetailView {
         const btn = e.target.closest('[data-action="add-to-cart"]');
         if (!btn) return;
         btn.disabled = true;
-        btn.textContent = 'Adding…';
+        btn.textContent = t('products.adding');
         try {
           const { cartApi } = await import('../api/projectApi.js');
           await cartApi.addItem(this._project.id);
-          btn.textContent = 'Added ✓';
+          btn.textContent = t('products.added');
           setTimeout(() => {
             btn.disabled = false;
-            btn.textContent = 'Add to Cart';
+            btn.textContent = t('products.addToCart');
           }, 2000);
         } catch (err) {
           btn.textContent = err.message || 'Error';
           setTimeout(() => {
             btn.disabled = false;
-            btn.textContent = 'Add to Cart';
+            btn.textContent = t('products.addToCart');
           }, 2000);
         }
       }, { signal });
