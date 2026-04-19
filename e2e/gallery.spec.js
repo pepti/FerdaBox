@@ -1,22 +1,22 @@
 const { test, expect } = require('@playwright/test');
 
-async function openStofanBakhus(page) {
+async function openProductDetail(page) {
   await page.goto('/#/projects');
   await page.waitForSelector('.project-card', { timeout: 10_000 });
-  await page.getByRole('button', { name: /View project: Stofan Bakhús/i }).click();
+  await page.getByRole('button', { name: /View product: Titan Travel Box/i }).click();
   await page.waitForSelector('.gallery-grid', { timeout: 10_000 });
 }
 
 test.describe('Gallery and lightbox', () => {
 
   test('project detail page shows gallery grid with images', async ({ page }) => {
-    await openStofanBakhus(page);
+    await openProductDetail(page);
     await expect(page.locator('.gallery-grid')).toBeVisible();
     await expect(page.locator('.gallery-grid__item').first()).toBeVisible();
   });
 
   test('clicking a gallery item opens the lightbox', async ({ page }) => {
-    await openStofanBakhus(page);
+    await openProductDetail(page);
 
     // Click the first image item (not a video)
     await page.locator('.gallery-grid__item:not(.gallery-grid__item--video)').first().click();
@@ -27,7 +27,7 @@ test.describe('Gallery and lightbox', () => {
   });
 
   test('lightbox shows correct image counter', async ({ page }) => {
-    await openStofanBakhus(page);
+    await openProductDetail(page);
 
     await page.locator('.gallery-grid__item').first().click();
     await expect(page.locator('.lb-overlay')).not.toHaveAttribute('hidden', { timeout: 5_000 });
@@ -37,7 +37,7 @@ test.describe('Gallery and lightbox', () => {
   });
 
   test('arrow navigation moves to next image', async ({ page }) => {
-    await openStofanBakhus(page);
+    await openProductDetail(page);
 
     await page.locator('.gallery-grid__item').first().click();
     await expect(page.locator('.lb-overlay')).not.toHaveAttribute('hidden', { timeout: 5_000 });
@@ -48,7 +48,7 @@ test.describe('Gallery and lightbox', () => {
   });
 
   test('close button hides the lightbox', async ({ page }) => {
-    await openStofanBakhus(page);
+    await openProductDetail(page);
 
     await page.locator('.gallery-grid__item').first().click();
     await expect(page.locator('.lb-overlay')).not.toHaveAttribute('hidden', { timeout: 5_000 });
@@ -58,7 +58,7 @@ test.describe('Gallery and lightbox', () => {
   });
 
   test('Escape key closes the lightbox', async ({ page }) => {
-    await openStofanBakhus(page);
+    await openProductDetail(page);
 
     await page.locator('.gallery-grid__item').first().click();
     await expect(page.locator('.lb-overlay')).not.toHaveAttribute('hidden', { timeout: 5_000 });

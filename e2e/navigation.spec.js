@@ -2,10 +2,10 @@ const { test, expect } = require('@playwright/test');
 
 test.describe('Navigation — basic page loads', () => {
 
-  test('homepage shows hero text: Halli and Smiley', async ({ page }) => {
+  test('homepage shows hero text: Ferða Box', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('.lol-hero__title')).toContainText('Halli');
-    await expect(page.locator('.lol-hero__title')).toContainText('Smiley');
+    await expect(page.locator('.lol-hero__title')).toContainText('Ferða');
+    await expect(page.locator('.lol-hero__title')).toContainText('Box');
   });
 
   test('homepage has a video background element', async ({ page }) => {
@@ -18,17 +18,17 @@ test.describe('Navigation — basic page loads', () => {
     await expect(page.locator('.project-card').first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('project detail page loads for Stofan Bakhús', async ({ page }) => {
+  test('project detail page loads for Titan Travel Box', async ({ page }) => {
     await page.goto('/#/projects');
     await page.waitForSelector('.project-card', { timeout: 10_000 });
-    await page.getByRole('button', { name: /View project: Stofan Bakhús/i }).click();
-    await expect(page.locator('.pd-hero__title')).toContainText('Stofan Bakhús');
+    await page.getByRole('button', { name: /View product: Titan Travel Box/i }).click();
+    await expect(page.locator('.pd-hero__title')).toContainText('Titan Travel Box');
   });
 
   test('project detail page shows gallery images', async ({ page }) => {
     await page.goto('/#/projects');
     await page.waitForSelector('.project-card', { timeout: 10_000 });
-    await page.getByRole('button', { name: /View project: Stofan Bakhús/i }).click();
+    await page.getByRole('button', { name: /View product: Titan Travel Box/i }).click();
     await expect(page.locator('.gallery-grid')).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('.gallery-grid__item').first()).toBeVisible();
   });

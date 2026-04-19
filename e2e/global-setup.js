@@ -12,6 +12,6 @@ module.exports = async function globalSetup() {
     opts,
   );
 
-  // Seed the Stofan Bakhús carpentry project with its media gallery
-  execSync('node server/scripts/seed-stofan-bakhus.js', opts);
+  // Seed products with media gallery
+  execSync('node server/scripts/seed.js', opts);
 };

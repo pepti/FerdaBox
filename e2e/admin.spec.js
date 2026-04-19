@@ -10,7 +10,7 @@ test.describe('Admin features', () => {
   test('Edit Project button is visible on project detail page', async ({ page }) => {
     await page.goto('/#/projects');
     await page.waitForSelector('.project-card', { timeout: 10_000 });
-    await page.getByRole('button', { name: /View project: Stofan Bakhús/i }).click();
+    await page.getByRole('button', { name: /View product: Titan Travel Box/i }).click();
 
     await expect(page.locator('.pd-edit-toggle')).toBeVisible({ timeout: 10_000 });
   });
@@ -18,7 +18,7 @@ test.describe('Admin features', () => {
   test('clicking Edit Project enters edit mode', async ({ page }) => {
     await page.goto('/#/projects');
     await page.waitForSelector('.project-card', { timeout: 10_000 });
-    await page.getByRole('button', { name: /View project: Stofan Bakhús/i }).click();
+    await page.getByRole('button', { name: /View product: Titan Travel Box/i }).click();
 
     await page.locator('.pd-edit-toggle').click();
 

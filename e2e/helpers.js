@@ -51,10 +51,10 @@ async function signupUser(page) {
 }
 
 /**
- * Navigate to the Stofan Bakhús project detail page from the projects list.
+ * Navigate to a product detail page from the products list.
  * Works whether logged in or not.
  */
-async function navigateToProject(page, name = /Stofan Bakhús/i) {
+async function navigateToProject(page, name = /Titan Travel Box/i) {
   await page.goto('/#/projects');
   await page.waitForSelector('.project-card', { timeout: 10_000 });
   await page.getByRole('button', { name }).click();
