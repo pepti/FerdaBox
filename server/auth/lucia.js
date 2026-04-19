@@ -28,7 +28,6 @@ const lucia = new Lucia(adapter, {
       phone:          attributes.phone,
       email_verified: attributes.email_verified,
       disabled:       attributes.disabled,
-      party_access:   attributes.party_access,
     };
   },
   getSessionAttributes(attributes) {

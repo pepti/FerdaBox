@@ -16,8 +16,6 @@ import { VerifyEmailView }    from './views/VerifyEmailView.js';
 import { ForgotPasswordView } from './views/ForgotPasswordView.js';
 import { ResetPasswordView }  from './views/ResetPasswordView.js';
 import { isAuthenticated, isAdmin } from './services/auth.js';
-import { PartyView }        from './views/PartyView.js';
-import { PartyAdminView }   from './views/PartyAdminView.js';
 import { CartView }          from './views/CartView.js';
 import { CheckoutView }      from './views/CheckoutView.js';
 import { OrdersView, OrderDetailView } from './views/OrdersView.js';
@@ -46,8 +44,6 @@ const ROUTES = [
   { pattern: '/checkout',        factory: ()  => isAuthenticated() ? new CheckoutView() : new CartView() },
   { pattern: '/orders/:id',      factory: (p) => new OrderDetailView(p.id) },
   { pattern: '/orders',          factory: ()  => new OrdersView() },
-  { pattern: '/party/admin',     factory: ()  => (isAuthenticated() && isAdmin()) ? new PartyAdminView() : new PartyView() },
-  { pattern: '/party',           factory: ()  => new PartyView() },
 ];
 
 function parseHash(rawHash) {

@@ -99,13 +99,10 @@ describe('Schema integrity: controller table references', () => {
     }
   });
 
-  test('schema.js defines all party tables', () => {
-    expect(schemaTables).toContain('party_rsvps');
-    expect(schemaTables).toContain('party_guestbook');
-    expect(schemaTables).toContain('party_photos');
-  });
-
-  test('schema.js does NOT include the dropped party_invites table', () => {
+  test('schema.js does NOT include any party tables (feature removed)', () => {
+    expect(schemaTables).not.toContain('party_rsvps');
+    expect(schemaTables).not.toContain('party_guestbook');
+    expect(schemaTables).not.toContain('party_photos');
     expect(schemaTables).not.toContain('party_invites');
   });
 
@@ -124,13 +121,14 @@ describe('Schema integrity: controller table references', () => {
     expect(missing).toHaveLength(0);
   });
 
-  test('no controller references the dropped party_invites table', () => {
-    const bad = controllerRefs.filter(({ table }) => table === 'party_invites');
+  test('no controller references any dropped party table', () => {
+    const droppedParty = ['party_rsvps', 'party_guestbook', 'party_photos', 'party_invites'];
+    const bad = controllerRefs.filter(({ table }) => droppedParty.includes(table));
 
     if (bad.length > 0) {
-      const detail = bad.map(({ file }) => `  ${file}`).join('\n');
+      const detail = bad.map(({ file, table }) => `  ${file}: ${table}`).join('\n');
       throw new Error(
-        `party_invites was dropped but is still referenced in:\n${detail}`
+        `Party tables were dropped but are still referenced in:\n${detail}`
       );
     }
 

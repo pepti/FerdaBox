@@ -14,7 +14,7 @@ export function isAuthenticated() { return !!_user; }
 export function hasRole(role)     { return _user?.role === role; }
 export function isAdmin()         { return _user?.role === 'admin'; }
 // Editor = admin or moderator. Used to gate edit-mode UI for site content
-// (party page, news, projects) where moderators have full edit/delete rights.
+// (news, projects) where moderators have full edit/delete rights.
 export function canEdit()         { return _user?.role === 'admin' || _user?.role === 'moderator'; }
 
 // ── CSRF ──────────────────────────────────────────────────────────────────────
@@ -236,7 +236,6 @@ export async function adminUpdateUser(userId, updates) {
   const pathByField = {
     role:         'role',
     disabled:     'disable',
-    party_access: 'party-access',
   };
   const [field] = Object.keys(updates);
   const sub = pathByField[field];

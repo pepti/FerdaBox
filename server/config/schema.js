@@ -384,6 +384,17 @@ const migrations = [
       `ALTER TABLE project_sections ADD COLUMN IF NOT EXISTS description_is TEXT`,
     ],
   },
+  {
+    // Remove the party feature inherited from the HalliProjects template.
+    // FerdaBox is an e-commerce site and never used party functionality.
+    name: '019_drop_party',
+    statements: [
+      `DROP TABLE IF EXISTS party_photos`,
+      `DROP TABLE IF EXISTS party_guestbook`,
+      `DROP TABLE IF EXISTS party_rsvps`,
+      `ALTER TABLE users DROP COLUMN IF EXISTS party_access`,
+    ],
+  },
 ];
 
 module.exports = { migrations };

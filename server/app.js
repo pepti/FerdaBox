@@ -15,7 +15,6 @@ const userRoutes     = require('./routes/userRoutes');
 const adminRoutes    = require('./routes/adminRoutes');
 const contentRoutes  = require('./routes/contentRoutes');
 const newsRoutes     = require('./routes/newsRoutes');
-const partyRoutes    = require('./routes/partyRoutes');
 const cartRoutes     = require('./routes/cartRoutes');
 const orderRoutes    = require('./routes/orderRoutes');
 const errorHandler   = require('./middleware/errorHandler');
@@ -136,12 +135,6 @@ const writeLimiter = rateLimit({
   message: { error: 'Too many write requests, please try again later.', code: 429 },
 });
 app.use('/api/v1/projects', (req, res, next) => {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    return writeLimiter(req, res, next);
-  }
-  next();
-});
-app.use('/api/v1/party', (req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     return writeLimiter(req, res, next);
   }
@@ -312,7 +305,6 @@ app.use('/api/v1/users',      userRoutes);
 app.use('/api/v1/admin',      adminRoutes);
 app.use('/api/v1/content',   contentRoutes);
 app.use('/api/v1/news',      newsRoutes);
-app.use('/api/v1/party',     partyRoutes);
 app.use('/api/v1/cart',      cartRoutes);
 app.use('/api/v1/orders',    orderRoutes);
 

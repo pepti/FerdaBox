@@ -4,16 +4,6 @@ import { t, getLang, setLang } from '../i18n/index.js';
 
 const avatarPathByName = name => `/assets/avatars/${name || 'avatar-01.svg'}`;
 
-let _partyAccess = false;
-async function _checkPartyAccess() {
-  if (!isAuthenticated()) { _partyAccess = false; return; }
-  try {
-    const res  = await fetch('/api/v1/party/access', { credentials: 'include' });
-    const data = await res.json();
-    _partyAccess = !!data.hasAccess;
-  } catch { _partyAccess = false; }
-}
-
 export class NavBar {
   constructor() {
     this._loginModal = new LoginModal();
@@ -47,8 +37,6 @@ export class NavBar {
           </svg>
           <span class="lol-nav__cart-count" id="nav-cart-count" style="display:none">0</span>
         </a>
-        <a href="#/party" class="lol-nav__link lol-nav__party-link" data-route="/party"
-           id="nav-party-link" style="display:none" aria-label="Party">Party</a>
         <div class="lol-nav__lang lol-nav__lang-mobile" id="nav-lang-mobile">
           <button class="lol-nav__lang-btn${getLang() === 'is' ? ' active' : ''}" data-lang="is">IS</button>
           <button class="lol-nav__lang-btn${getLang() === 'en' ? ' active' : ''}" data-lang="en">EN</button>
@@ -78,19 +66,9 @@ export class NavBar {
 
     window.addEventListener('authchange', () => {
       this._renderAuth();
-      _checkPartyAccess().then(() => this._updatePartyLink());
     });
 
-    _checkPartyAccess().then(() => this._updatePartyLink());
-
     return nav;
-  }
-
-  _updatePartyLink() {
-    const link =
-      document.getElementById('nav-party-link') ||
-      this._nav?.querySelector('#nav-party-link');
-    if (link) link.style.display = _partyAccess ? '' : 'none';
   }
 
   _renderAuth() {

@@ -62,13 +62,6 @@ const PAGES = [
     caption: 'User profile — avatar, bio, and social links',
     waitFor: '.profile-view, #app',
   },
-  {
-    name: 'party',
-    url: '/#/party',
-    file: 'screenshot-party.jpg',
-    caption: "Birthday party hub — invite-only event page (unauthenticated view)",
-    waitFor: '.party-view, .party-page, #app',
-  },
 ];
 
 async function ensureOutputDir() {
