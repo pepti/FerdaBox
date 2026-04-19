@@ -1,4 +1,5 @@
 import { isAuthenticated, isAdmin, getUser, logout } from '../services/auth.js';
+import { escHtml } from '../utils/escHtml.js';
 import { LoginModal } from './LoginModal.js';
 import { t, getLang, setLang } from '../i18n/index.js';
 
@@ -90,8 +91,8 @@ export class NavBar {
       userBtn.setAttribute('data-testid', 'nav-user-btn');
       userBtn.innerHTML = `
         <img class="lol-nav__user-avatar" src="${avatarPathByName(user?.avatar)}"
-             alt="${user?.username || 'User'}" />
-        <span class="lol-nav__user-name">${user?.displayName || user?.username || t('nav.account')}</span>
+             alt="${escHtml(user?.username || 'User')}" />
+        <span class="lol-nav__user-name">${escHtml(user?.displayName || user?.username || t('nav.account'))}</span>
         <span class="lol-nav__user-caret" aria-hidden="true">▾</span>
       `;
 
