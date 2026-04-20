@@ -2,8 +2,16 @@ import { cartApi, orderApi } from '../api/projectApi.js';
 import { escHtml }  from '../utils/escHtml.js';
 import { isAuthenticated, getUser } from '../services/auth.js';
 import { t } from '../i18n/index.js';
+import * as currency from '../services/currency.js';
 
-const fmtPrice = (p) => Number(p).toLocaleString('is-IS') + ' kr.';
+// Picks the per-item price in the current currency with ISK fallback when the
+// product has no price_eur.
+function itemPrice(item, cur) {
+  if (cur === 'EUR' && item.price_eur != null && item.price_eur !== '') {
+    return { amount: Number(item.price_eur), currency: 'EUR' };
+  }
+  return { amount: Number(item.price), currency: 'ISK' };
+}
 
 export class CheckoutView {
   async render() {
@@ -16,19 +24,25 @@ export class CheckoutView {
     }
 
     try {
-      const { items, total } = await cartApi.getCart();
+      const { items } = await cartApi.getCart();
       if (!items.length) {
         view.innerHTML = `<div class="checkout-view__inner"><h1>${t('checkout.heading')}</h1><p>${t('checkout.emptyCart')} <a href="#/projects">${t('cart.browseProducts')}</a></p></div>`;
         return view;
       }
 
       const user = getUser();
-      const itemRows = items.map(i => `
-        <div class="checkout-item">
-          <span>${escHtml(i.title)} x${i.quantity}</span>
-          <span>${fmtPrice(i.price * i.quantity)}</span>
-        </div>
-      `).join('');
+      const cur = currency.getCurrency();
+      let summaryTotal = 0;
+      const itemRows = items.map(i => {
+        const { amount, currency: lineCur } = itemPrice(i, cur);
+        const sub = amount * Number(i.quantity);
+        if (lineCur === cur) summaryTotal += sub;
+        return `
+          <div class="checkout-item">
+            <span>${escHtml(i.title)} x${i.quantity}</span>
+            <span>${currency.formatMoney(sub, lineCur)}</span>
+          </div>`;
+      }).join('');
 
       view.innerHTML = `
         <div class="checkout-view__inner">
@@ -69,7 +83,7 @@ export class CheckoutView {
               <hr>
               <div class="checkout-total">
                 <span>${t('cart.total')}</span>
-                <strong>${fmtPrice(total)}</strong>
+                <strong>${currency.formatMoney(summaryTotal, cur)}</strong>
               </div>
             </div>
           </div>

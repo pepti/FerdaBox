@@ -59,12 +59,20 @@ export class ProjectForm {
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label" for="pf-price">${t('form.price')} <span class="req">*</span></label>
+              <label class="form-label" for="pf-price">${t('form.price')} (ISK) <span class="req">*</span></label>
               <input class="form-input" id="pf-price" name="price" type="number" min="0" step="1" placeholder="0" />
             </div>
             <div class="form-group">
-              <label class="form-label" for="pf-compare-price">${t('form.comparePrice')}</label>
+              <label class="form-label" for="pf-compare-price">${t('form.comparePrice')} (ISK)</label>
               <input class="form-input" id="pf-compare-price" name="compare_at_price" type="number" min="0" step="1" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="pf-price-eur">Price (EUR)
+                <span class="form-hint">Leave blank if this product is ISK-only</span>
+              </label>
+              <input class="form-input" id="pf-price-eur" name="price_eur" type="number" min="0" step="0.01" placeholder="e.g. 39.95" />
             </div>
           </div>
           <div class="form-row">
@@ -134,6 +142,7 @@ export class ProjectForm {
       form.tools_used.value      = (project.tools_used || []).join(', ');
       form.image_url.value       = project.image_url || '';
       form.price.value           = project.price || 0;
+      form.price_eur.value       = project.price_eur != null ? project.price_eur : '';
       form.compare_at_price.value = project.compare_at_price || '';
       form.stock_quantity.value   = project.stock_quantity || 0;
       form.sku.value             = project.sku || '';
@@ -166,6 +175,7 @@ export class ProjectForm {
       tools_used:       form.tools_used.value.split(',').map(t => t.trim()).filter(Boolean),
       image_url:        form.image_url.value.trim() || null,
       price:            Number(form.price.value) || 0,
+      price_eur:        form.price_eur.value ? Number(form.price_eur.value) : null,
       compare_at_price: form.compare_at_price.value ? Number(form.compare_at_price.value) : null,
       stock_quantity:   Number(form.stock_quantity.value) || 0,
       sku:              form.sku.value.trim() || null,

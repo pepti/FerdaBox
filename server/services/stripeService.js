@@ -6,14 +6,18 @@ const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
 // Stripe expects amounts in the smallest currency unit (integers):
 //   ISK: whole krónur — no subunit.
-// Our DB stores prices as DECIMAL(10,2); convert to integer ISK at the boundary.
-// Accepts either a plain number of krónur or a DECIMAL-as-string.
-function toStripeAmount(price) {
-  return Math.round(Number(price));
+//   EUR: cents.
+// Our DB stores prices as DECIMAL(10,2).  For ISK we round to whole krónur;
+// for EUR we multiply by 100 to get cents.
+function toStripeAmount(price, currency = 'ISK') {
+  const n = Number(price);
+  if (currency === 'EUR') return Math.round(n * 100);
+  return Math.round(n);
 }
 
 async function createCheckoutSession({
   items,       // [{ name, priceStripe, quantity, productId }]
+  currency = 'ISK',
   customerEmail = null,
   orderId,
 }) {
@@ -21,7 +25,7 @@ async function createCheckoutSession({
 
   const line_items = items.map(it => ({
     price_data: {
-      currency: 'isk',
+      currency: currency.toLowerCase(),
       product_data: {
         name: it.name,
         metadata: { productId: String(it.productId) },

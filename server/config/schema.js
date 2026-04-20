@@ -411,6 +411,19 @@ const migrations = [
       )`,
     ],
   },
+  {
+    // Multi-currency: optional EUR price per product, currency tag on orders.
+    // price_eur NULL means "EUR price not set for this product" — the UI
+    // should fall back to ISK when the user picks EUR for such a product.
+    name: '021_multi_currency',
+    statements: [
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS price_eur DECIMAL(10,2)`,
+      `ALTER TABLE orders   ADD COLUMN IF NOT EXISTS currency  TEXT NOT NULL DEFAULT 'ISK'`,
+      // Drop any prior check constraint (safe if none exists) then re-add
+      `ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_currency_check`,
+      `ALTER TABLE orders ADD CONSTRAINT orders_currency_check CHECK (currency IN ('ISK','EUR'))`,
+    ],
+  },
 ];
 
 module.exports = { migrations };

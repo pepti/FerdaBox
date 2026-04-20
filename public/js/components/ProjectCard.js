@@ -9,6 +9,7 @@ const CATEGORY_IMAGES = {
 
 import { escHtml } from '../utils/escHtml.js';
 import { t } from '../i18n/index.js';
+import * as currency from '../services/currency.js';
 
 export class ProjectCard {
   constructor(project, onClick) {
@@ -17,7 +18,7 @@ export class ProjectCard {
   }
 
   render() {
-    const { title, description, category, featured, image_url, price, compare_at_price, stock_quantity } = this.project;
+    const { title, description, category, featured, image_url, compare_at_price, stock_quantity } = this.project;
 
     const card = document.createElement('div');
     card.className = 'project-card';
@@ -28,9 +29,14 @@ export class ProjectCard {
 
     const bgImg = image_url || CATEGORY_IMAGES[category] || CATEGORY_IMAGES.roof_boxes;
     const catLabel = (category || '').replace(/_/g, ' ');
-    const fmtPrice = (p) => Number(p).toLocaleString('is-IS') + ' kr.';
-    const hasPrice = price && Number(price) > 0;
-    const onSale = hasPrice && compare_at_price && Number(compare_at_price) > Number(price);
+    // Pick the price/compare in the user's selected currency with ISK fallback
+    // when price_eur is not set on the product.
+    const resolved = currency.productPrice(this.project);
+    const compareResolved = compare_at_price
+      ? currency.productPrice({ price: compare_at_price, price_eur: this.project.compare_at_price_eur }, resolved.currency)
+      : null;
+    const hasPrice = resolved.amount > 0;
+    const onSale = hasPrice && compareResolved && compareResolved.amount > resolved.amount;
     const inStock = stock_quantity > 0;
 
     card.innerHTML = `
@@ -39,7 +45,7 @@ export class ProjectCard {
              src="${escHtml(bgImg)}" alt="${escHtml(title)}" loading="lazy">
         <div class="project-card__image-overlay"></div>
         <span class="project-card__category project-card__category--${escHtml(category)}">${escHtml(catLabel)}</span>
-        ${hasPrice ? `<span class="project-card__price">${onSale ? `<s class="project-card__price--was">${fmtPrice(compare_at_price)}</s> ` : ''}${fmtPrice(price)}</span>` : ''}
+        ${hasPrice ? `<span class="project-card__price">${onSale ? `<s class="project-card__price--was">${currency.formatMoney(compareResolved.amount, compareResolved.currency)}</s> ` : ''}${currency.formatMoney(resolved.amount, resolved.currency)}</span>` : ''}
         ${featured ? '<span class="project-card__featured-star" title="Featured">★</span>' : ''}
       </div>
       <div class="project-card__body">

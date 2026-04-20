@@ -75,11 +75,12 @@ const orderController = {
         return res.status(503).json({ error: 'Stripe checkout is not configured', code: 503 });
       }
 
-      const { name, email, phone, address, notes } = req.body;
+      const { name, email, phone, address, notes, currency = 'ISK' } = req.body;
       const errors = [];
       if (!name?.trim())    errors.push('name is required');
       if (!email?.trim())   errors.push('email is required');
       if (!address?.trim()) errors.push('shipping address is required');
+      if (!['ISK', 'EUR'].includes(currency)) errors.push('currency must be ISK or EUR');
       if (errors.length) return res.status(400).json({ error: errors.join('; '), code: 400 });
 
       const cartItems = await Cart.getByUser(req.user.id);
@@ -87,15 +88,23 @@ const orderController = {
         return res.status(400).json({ error: 'Cart is empty', code: 400 });
       }
 
-      const order = await Order.createPending(req.user.id, cartItems, { name, email, phone, address, notes });
+      // createPending picks price (ISK) or price_eur (EUR) per item, rejects
+      // EUR orders that include products without a price_eur, and stores the
+      // currency on the order row so receipts/order-history render correctly.
+      const order = await Order.createPending(
+        req.user.id, cartItems,
+        { name, email, phone, address, notes },
+        { currency },
+      );
 
       const session = await stripeService.createCheckoutSession({
         items: order.items.map(it => ({
           productId: it.project_id,
           name: it.product_title,
-          priceStripe: stripeService.toStripeAmount(it.unit_price), // per-unit, minor units
+          priceStripe: stripeService.toStripeAmount(it.unit_price, currency),
           quantity: it.quantity,
         })),
+        currency,
         customerEmail: email,
         orderId: order.id,
       });

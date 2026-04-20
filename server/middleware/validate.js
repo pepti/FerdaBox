@@ -73,6 +73,10 @@ function validateProject(req, res, next) {
     const p = Number(price);
     if (isNaN(p) || p < 0) errors.push('price must be a non-negative number');
   }
+  if (req.body.price_eur !== undefined && req.body.price_eur !== null && req.body.price_eur !== '') {
+    const p = Number(req.body.price_eur);
+    if (isNaN(p) || p < 0) errors.push('price_eur must be a non-negative number');
+  }
   if (compare_at_price !== undefined && compare_at_price !== null) {
     const p = Number(compare_at_price);
     if (isNaN(p) || p < 0) errors.push('compare_at_price must be a non-negative number');

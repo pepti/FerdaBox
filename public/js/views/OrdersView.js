@@ -2,8 +2,11 @@ import { orderApi } from '../api/projectApi.js';
 import { escHtml }  from '../utils/escHtml.js';
 import { isAuthenticated } from '../services/auth.js';
 import { t } from '../i18n/index.js';
+import * as currency from '../services/currency.js';
 
-const fmtPrice = (p) => Number(p).toLocaleString('is-IS') + ' kr.';
+// Orders are displayed in the currency stored on the row (order.currency), not
+// the user's current selector — we show what was actually charged.
+const fmtOrderPrice = (amount, order) => currency.formatMoney(amount, order.currency || 'ISK');
 const fmtDate  = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const statusLabel = (status) => {
@@ -35,7 +38,7 @@ export class OrdersView {
           <span class="order-row__id">#${o.id}</span>
           <span class="order-row__date">${fmtDate(o.created_at)}</span>
           <span class="order-row__status order-row__status--${o.status}">${statusLabel(o.status)}</span>
-          <span class="order-row__total">${fmtPrice(o.total_price)}</span>
+          <span class="order-row__total">${fmtOrderPrice(o.total_price, o)}</span>
         </a>
       `).join('');
 
@@ -73,7 +76,7 @@ export class OrderDetailView {
       const itemRows = (order.items || []).map(i => `
         <div class="order-item">
           <span>${escHtml(i.product_title)} x${i.quantity}</span>
-          <span>${fmtPrice(i.unit_price * i.quantity)}</span>
+          <span>${fmtOrderPrice(i.unit_price * i.quantity, order)}</span>
         </div>
       `).join('');
 
@@ -98,7 +101,7 @@ export class OrderDetailView {
             <hr>
             <div class="order-detail__total">
               <span>${t('orders.total')}</span>
-              <strong>${fmtPrice(order.total_price)}</strong>
+              <strong>${fmtOrderPrice(order.total_price, order)}</strong>
             </div>
           </div>
           <a href="#/orders" class="btn btn--ghost">${t('orders.backToOrders')}</a>

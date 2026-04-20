@@ -3,6 +3,7 @@ import { escHtml }    from '../utils/escHtml.js';
 import { Lightbox }   from '../components/Lightbox.js';
 import { getUser }    from '../services/auth.js';
 import { t, getLang }  from '../i18n/index.js';
+import * as currency   from '../services/currency.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function wave(fromBg, toFill, flip = false) {
@@ -17,7 +18,16 @@ function wave(fromBg, toFill, flip = false) {
   </div>`;
 }
 
-const fmtPrice = (p) => Number(p).toLocaleString('is-IS') + ' kr.';
+// Render a product's price in the user's selected currency, with ISK fallback
+// when the product has no price_eur.  Takes the full product row so both
+// `price` and `price_eur` are available.
+function formatProductPrice(product, opts = {}) {
+  const source = opts.compare
+    ? { price: product.compare_at_price, price_eur: product.compare_at_price_eur }
+    : product;
+  const { amount, currency: cur } = currency.productPrice(source);
+  return currency.formatMoney(amount, cur);
+}
 
 const CATEGORY_HERO = {
   roof_boxes:   '/assets/products/titan/5.jpg',
@@ -259,8 +269,8 @@ export class ProjectDetailView {
           <span class="hb-eyebrow" style="margin-bottom:0.8rem;display:inline-block">${escHtml(catLabel)}</span>
           <h1 class="pds-hero__title">${escHtml(pTitle)}</h1>
           ${hasPrice ? `
-          <div class="pds-hero__price-badge">${fmtPrice(p.price)}</div>
-          ${onSale ? `<span class="pds-hero__compare">${fmtPrice(p.compare_at_price)}</span>` : ''}
+          <div class="pds-hero__price-badge">${formatProductPrice(p)}</div>
+          ${onSale ? `<span class="pds-hero__compare">${formatProductPrice(p, { compare: true })}</span>` : ''}
           ` : ''}
           <div class="hb-hero__scroll" aria-hidden="true">
             <span>${t('products.scroll')}</span>
@@ -351,8 +361,8 @@ export class ProjectDetailView {
           <span class="hb-eyebrow hb-reveal">${t('products.readyToGo')}</span>
           <h2 class="hb-title hb-reveal hb-d1">${escHtml(pTitle)}</h2>
           ${hasPrice ? `
-          <div class="pds-cta__price hb-reveal hb-d2">${fmtPrice(p.price)}</div>
-          ${onSale ? `<div class="pds-cta__compare hb-reveal hb-d2">${fmtPrice(p.compare_at_price)}</div>` : ''}
+          <div class="pds-cta__price hb-reveal hb-d2">${formatProductPrice(p)}</div>
+          ${onSale ? `<div class="pds-cta__compare hb-reveal hb-d2">${formatProductPrice(p, { compare: true })}</div>` : ''}
           <div class="pds-cta__stock ${inStock ? 'pds-cta__stock--in' : 'pds-cta__stock--out'} hb-reveal hb-d3">
             ${inStock ? t('products.inStock') : t('products.outOfStock')}
           </div>

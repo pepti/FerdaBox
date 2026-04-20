@@ -3,7 +3,7 @@
 const db = require('../config/database');
 
 // Explicit column list — avoids SELECT * so schema changes are explicit
-const COLUMNS = 'id, title, description, category, year, tools_used, image_url, featured, video_section_position, price, compare_at_price, stock_quantity, sku, status, title_is, description_is, created_at, updated_at';
+const COLUMNS = 'id, title, description, category, year, tools_used, image_url, featured, video_section_position, price, price_eur, compare_at_price, stock_quantity, sku, status, title_is, description_is, created_at, updated_at';
 
 class Project {
   // ── READ ──────────────────────────────────────────────────────────────────
@@ -60,15 +60,16 @@ class Project {
   static async create(data) {
     const {
       title, description, category, year, tools_used = [], image_url = null, featured = false,
-      price = 0, compare_at_price = null, stock_quantity = 0, sku = null, status = 'draft',
+      price = 0, price_eur = null, compare_at_price = null, stock_quantity = 0, sku = null, status = 'draft',
       title_is = null, description_is = null,
     } = data;
     const { rows } = await db.query(
-      `INSERT INTO projects (title, description, category, year, tools_used, image_url, featured, price, compare_at_price, stock_quantity, sku, status, title_is, description_is)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      `INSERT INTO projects (title, description, category, year, tools_used, image_url, featured, price, price_eur, compare_at_price, stock_quantity, sku, status, title_is, description_is)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING ${COLUMNS}`,
       [title, description, category, Number(year), tools_used, image_url, Boolean(featured),
-       Number(price), compare_at_price != null ? Number(compare_at_price) : null,
+       Number(price), price_eur != null && price_eur !== '' ? Number(price_eur) : null,
+       compare_at_price != null ? Number(compare_at_price) : null,
        Number(stock_quantity), sku || null, status, title_is, description_is]
     );
     return rows[0];
@@ -76,7 +77,7 @@ class Project {
 
   static async update(id, data) {
     // Build SET clause dynamically — only update provided fields
-    const allowed = ['title', 'description', 'category', 'year', 'tools_used', 'image_url', 'featured', 'video_section_position', 'price', 'compare_at_price', 'stock_quantity', 'sku', 'status', 'title_is', 'description_is'];
+    const allowed = ['title', 'description', 'category', 'year', 'tools_used', 'image_url', 'featured', 'video_section_position', 'price', 'price_eur', 'compare_at_price', 'stock_quantity', 'sku', 'status', 'title_is', 'description_is'];
     const sets   = [];
     const params = [];
 

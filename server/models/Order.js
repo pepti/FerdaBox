@@ -1,6 +1,6 @@
 const db = require('../config/database');
 
-const ORDER_COLUMNS = 'id, user_id, status, total_price, customer_name, customer_email, customer_phone, shipping_address, notes, stripe_session_id, stripe_payment_intent_id, paid_at, created_at, updated_at';
+const ORDER_COLUMNS = 'id, user_id, status, total_price, currency, customer_name, customer_email, customer_phone, shipping_address, notes, stripe_session_id, stripe_payment_intent_id, paid_at, created_at, updated_at';
 const ITEM_COLUMNS  = 'id, order_id, project_id, quantity, unit_price, product_title';
 
 class Order {
@@ -106,15 +106,17 @@ class Order {
   // ── Stripe flow ────────────────────────────────────────────────────────────
   // Creates a pending order WITHOUT decrementing stock. Stock is taken off
   // only when the Stripe webhook confirms payment — see markPaidWithStock().
-  static async createPending(userId, cartItems, shippingInfo) {
+  static async createPending(userId, cartItems, shippingInfo, options = {}) {
+    const currency = options.currency === 'EUR' ? 'EUR' : 'ISK';
     const client = await db.pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Validate stock availability (but don't decrement yet)
+      // Validate stock availability (but don't decrement yet).  We pull
+      // price_eur as well so EUR orders record the right per-item subtotal.
       for (const item of cartItems) {
         const { rows } = await client.query(
-          `SELECT id, title, price, stock_quantity, status
+          `SELECT id, title, price, price_eur, stock_quantity, status
              FROM projects WHERE id = $1`,
           [item.project_id]
         );
@@ -124,17 +126,20 @@ class Order {
         if (product.stock_quantity < item.quantity) {
           throw Object.assign(new Error(`Insufficient stock for ${product.title} (available: ${product.stock_quantity})`), { statusCode: 400 });
         }
-        item._price = product.price;
+        if (currency === 'EUR' && product.price_eur == null) {
+          throw Object.assign(new Error(`${product.title} has no EUR price`), { statusCode: 400 });
+        }
+        item._price = currency === 'EUR' ? product.price_eur : product.price;
         item._title = product.title;
       }
 
       const totalPrice = cartItems.reduce((sum, i) => sum + Number(i._price) * i.quantity, 0);
 
       const { rows: orderRows } = await client.query(
-        `INSERT INTO orders (user_id, total_price, customer_name, customer_email, customer_phone, shipping_address, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO orders (user_id, total_price, currency, customer_name, customer_email, customer_phone, shipping_address, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING ${ORDER_COLUMNS}`,
-        [userId, totalPrice, shippingInfo.name, shippingInfo.email, shippingInfo.phone || null,
+        [userId, totalPrice, currency, shippingInfo.name, shippingInfo.email, shippingInfo.phone || null,
          shippingInfo.address, shippingInfo.notes || null]
       );
       const order = orderRows[0];
