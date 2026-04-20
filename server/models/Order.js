@@ -1,11 +1,11 @@
 const db = require('../config/database');
 
-const ORDER_COLUMNS = 'id, user_id, status, total_price, currency, customer_name, customer_email, customer_phone, shipping_address, notes, stripe_session_id, stripe_payment_intent_id, paid_at, created_at, updated_at';
+const ORDER_COLUMNS = 'id, user_id, status, total_price, currency, customer_name, customer_email, customer_phone, shipping_address, shipping_method, shipping_amount, shipping_address_json, notes, stripe_session_id, stripe_payment_intent_id, paid_at, created_at, updated_at';
 const ITEM_COLUMNS  = 'id, order_id, project_id, quantity, unit_price, product_title';
 
 class Order {
   // Atomic checkout: create order + items + decrement stock, all in one transaction
-  static async create(userId, cartItems, shippingInfo) {
+  static async create(userId, cartItems, shippingInfo, options = {}) {
     const client = await db.pool.connect();
     try {
       await client.query('BEGIN');
@@ -27,15 +27,23 @@ class Order {
         item._title = product.title;
       }
 
-      const totalPrice = cartItems.reduce((sum, i) => sum + Number(i._price) * i.quantity, 0);
+      const itemsSubtotal = cartItems.reduce((sum, i) => sum + Number(i._price) * i.quantity, 0);
+      const shippingAmount = Number(options.shippingAmount || 0);
+      const totalPrice = itemsSubtotal + shippingAmount;
+      const shippingMethod = options.shippingMethod || null;
+      const shippingAddressJson = options.shippingAddressJson
+        ? (typeof options.shippingAddressJson === 'string'
+            ? options.shippingAddressJson
+            : JSON.stringify(options.shippingAddressJson))
+        : null;
 
       // Create order
       const { rows: orderRows } = await client.query(
-        `INSERT INTO orders (user_id, total_price, customer_name, customer_email, customer_phone, shipping_address, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO orders (user_id, total_price, customer_name, customer_email, customer_phone, shipping_address, shipping_method, shipping_amount, shipping_address_json, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
          RETURNING ${ORDER_COLUMNS}`,
         [userId, totalPrice, shippingInfo.name, shippingInfo.email, shippingInfo.phone || null,
-         shippingInfo.address, shippingInfo.notes || null]
+         shippingInfo.address, shippingMethod, shippingAmount, shippingAddressJson, shippingInfo.notes || null]
       );
       const order = orderRows[0];
 
@@ -133,14 +141,22 @@ class Order {
         item._title = product.title;
       }
 
-      const totalPrice = cartItems.reduce((sum, i) => sum + Number(i._price) * i.quantity, 0);
+      const itemsSubtotal = cartItems.reduce((sum, i) => sum + Number(i._price) * i.quantity, 0);
+      const shippingAmount = Number(options.shippingAmount || 0);
+      const totalPrice = itemsSubtotal + shippingAmount;
+      const shippingMethod = options.shippingMethod || null;
+      const shippingAddressJson = options.shippingAddressJson
+        ? (typeof options.shippingAddressJson === 'string'
+            ? options.shippingAddressJson
+            : JSON.stringify(options.shippingAddressJson))
+        : null;
 
       const { rows: orderRows } = await client.query(
-        `INSERT INTO orders (user_id, total_price, currency, customer_name, customer_email, customer_phone, shipping_address, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO orders (user_id, total_price, currency, customer_name, customer_email, customer_phone, shipping_address, shipping_method, shipping_amount, shipping_address_json, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11)
          RETURNING ${ORDER_COLUMNS}`,
         [userId, totalPrice, currency, shippingInfo.name, shippingInfo.email, shippingInfo.phone || null,
-         shippingInfo.address, shippingInfo.notes || null]
+         shippingInfo.address, shippingMethod, shippingAmount, shippingAddressJson, shippingInfo.notes || null]
       );
       const order = orderRows[0];
 

@@ -44,6 +44,17 @@ export class CheckoutView {
           </div>`;
       }).join('');
 
+      // Default shipping cost — read from server /api/v1/shop/config if we
+      // had that endpoint; for now we use the documented defaults (flat_rate
+      // 2500 ISK / 19.00 EUR, local_pickup free).
+      const SHIPPING_DEFAULTS = {
+        flat_rate:    { ISK: 2500, EUR: 19.00 },
+        local_pickup: { ISK: 0,    EUR: 0 },
+      };
+      const selectedMethod = 'flat_rate';
+      const shippingCost = SHIPPING_DEFAULTS[selectedMethod][cur] || 0;
+      const grandTotal = summaryTotal + shippingCost;
+
       view.innerHTML = `
         <div class="checkout-view__inner">
           <h1>${t('checkout.heading')}</h1>
@@ -65,10 +76,52 @@ export class CheckoutView {
                 <input class="form-input" id="co-phone" name="phone" type="tel"
                        value="${escHtml(user?.phone || '')}" />
               </div>
-              <div class="form-group">
-                <label class="form-label" for="co-address">${t('checkout.address')} <span class="req">*</span></label>
-                <textarea class="form-input form-textarea" id="co-address" name="address" rows="3" required></textarea>
+
+              <h2 style="margin-top:1.5rem">${t('checkout.shippingMethod') === 'checkout.shippingMethod' ? 'Shipping method' : t('checkout.shippingMethod')}</h2>
+              <div class="form-group checkout-ship-methods">
+                <label class="checkout-ship-method">
+                  <input type="radio" name="shipping_method" value="flat_rate" checked>
+                  <div>
+                    <strong>Shipping</strong>
+                    <span class="checkout-ship-method__price" id="co-ship-price-flat">${currency.formatMoney(SHIPPING_DEFAULTS.flat_rate[cur], cur)}</span>
+                  </div>
+                </label>
+                <label class="checkout-ship-method">
+                  <input type="radio" name="shipping_method" value="local_pickup">
+                  <div>
+                    <strong>Local pickup</strong>
+                    <span class="checkout-ship-method__price">Free</span>
+                  </div>
+                </label>
               </div>
+
+              <div class="form-group" id="co-address-fields">
+                <div class="form-row">
+                  <div class="form-group" style="flex:2">
+                    <label class="form-label" for="co-line1">Address line 1 <span class="req">*</span></label>
+                    <input class="form-input" id="co-line1" name="line1" type="text" required />
+                  </div>
+                  <div class="form-group" style="flex:1">
+                    <label class="form-label" for="co-line2">Line 2</label>
+                    <input class="form-input" id="co-line2" name="line2" type="text" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group" style="flex:2">
+                    <label class="form-label" for="co-city">City <span class="req">*</span></label>
+                    <input class="form-input" id="co-city" name="city" type="text" required />
+                  </div>
+                  <div class="form-group" style="flex:1">
+                    <label class="form-label" for="co-postal">Postal code <span class="req">*</span></label>
+                    <input class="form-input" id="co-postal" name="postal" type="text" required />
+                  </div>
+                  <div class="form-group" style="flex:1">
+                    <label class="form-label" for="co-country">Country <span class="req">*</span></label>
+                    <input class="form-input" id="co-country" name="country" type="text" maxlength="2" value="IS" placeholder="IS" required />
+                  </div>
+                </div>
+              </div>
+
               <div class="form-group">
                 <label class="form-label" for="co-notes">${t('checkout.notes')}</label>
                 <textarea class="form-input form-textarea" id="co-notes" name="notes" rows="2"></textarea>
@@ -80,21 +133,47 @@ export class CheckoutView {
             <div class="checkout-summary">
               <h2>${t('checkout.orderSummary')}</h2>
               <div class="checkout-items">${itemRows}</div>
+              <div class="checkout-item"><span>Subtotal</span><span>${currency.formatMoney(summaryTotal, cur)}</span></div>
+              <div class="checkout-item"><span>Shipping</span><span id="co-ship-display">${currency.formatMoney(shippingCost, cur)}</span></div>
               <hr>
               <div class="checkout-total">
                 <span>${t('cart.total')}</span>
-                <strong>${currency.formatMoney(summaryTotal, cur)}</strong>
+                <strong id="co-total-display">${currency.formatMoney(grandTotal, cur)}</strong>
               </div>
             </div>
           </div>
         </div>`;
 
+      this._shippingDefaults = SHIPPING_DEFAULTS;
+      this._summaryTotal = summaryTotal;
+      this._currency = cur;
+      this._bindShippingToggle(view);
       this._bindSubmit(view);
     } catch (err) {
       view.innerHTML = `<div class="checkout-view__inner"><h1>${t('checkout.heading')}</h1><p>${t('checkout.error')} ${escHtml(err.message)}</p></div>`;
     }
 
     return view;
+  }
+
+  _bindShippingToggle(view) {
+    const radios = view.querySelectorAll('input[name="shipping_method"]');
+    const addressFields = view.querySelector('#co-address-fields');
+    const shipDisplay = view.querySelector('#co-ship-display');
+    const totalDisplay = view.querySelector('#co-total-display');
+    const update = () => {
+      const selected = view.querySelector('input[name="shipping_method"]:checked')?.value || 'flat_rate';
+      const cost = this._shippingDefaults[selected][this._currency] || 0;
+      addressFields.style.display = selected === 'local_pickup' ? 'none' : '';
+      const requiredFields = ['line1', 'city', 'postal', 'country'];
+      requiredFields.forEach(n => {
+        const el = view.querySelector(`#co-${n}`);
+        if (el) el.required = selected !== 'local_pickup';
+      });
+      shipDisplay.textContent = currency.formatMoney(cost, this._currency);
+      totalDisplay.textContent = currency.formatMoney(this._summaryTotal + cost, this._currency);
+    };
+    radios.forEach(r => r.addEventListener('change', update));
   }
 
   _bindSubmit(view) {
@@ -107,13 +186,25 @@ export class CheckoutView {
       btn.disabled = true;
       btn.textContent = t('checkout.placingOrder');
 
+      const shippingMethod = form.shipping_method.value;
+      const requiresAddress = shippingMethod !== 'local_pickup';
+      const shippingAddress = requiresAddress ? {
+        line1:   form.line1.value.trim(),
+        line2:   form.line2.value.trim() || null,
+        city:    form.city.value.trim(),
+        postal:  form.postal.value.trim(),
+        country: (form.country.value || '').trim().toUpperCase(),
+        phone:   form.phone.value.trim() || null,
+      } : null;
+
       try {
         const order = await orderApi.checkout({
           name:    form.name.value.trim(),
           email:   form.email.value.trim(),
           phone:   form.phone.value.trim(),
-          address: form.address.value.trim(),
           notes:   form.notes.value.trim(),
+          shipping_method:  shippingMethod,
+          shipping_address: shippingAddress,
         });
         window.location.hash = `#/orders/${order.id}`;
       } catch (err) {

@@ -477,6 +477,21 @@ const migrations = [
       `CREATE INDEX IF NOT EXISTS idx_order_items_variant_id ON order_items (product_variant_id)`,
     ],
   },
+  {
+    // Shipping method + structured address on orders.  The legacy
+    // customer_name / customer_email / shipping_address (free text) columns
+    // stay in place for backward compat; new orders populate both the legacy
+    // fields (for existing admin views) AND the structured columns.
+    name: '023_shipping_fields',
+    statements: [
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_method    TEXT
+        CHECK (shipping_method IS NULL OR shipping_method IN ('flat_rate', 'local_pickup'))`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_amount    DECIMAL(10,2) NOT NULL DEFAULT 0`,
+      // Structured address — { line1, line2, city, postal, country, phone }.
+      // Nullable because local_pickup doesn't require an address.
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address_json JSONB`,
+    ],
+  },
 ];
 
 module.exports = { migrations };

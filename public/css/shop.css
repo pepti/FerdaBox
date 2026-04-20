@@ -208,6 +208,45 @@
 }
 .shop-filters__reset:hover { border-color: var(--gold); color: var(--gold); }
 
+/* ── Checkout shipping method picker ─────────────────────────────────────── */
+.checkout-ship-methods {
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .checkout-ship-methods { grid-template-columns: 1fr 1fr; }
+}
+.checkout-ship-method {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border-dim);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.checkout-ship-method:hover {
+  border-color: var(--gold);
+}
+.checkout-ship-method input[type="radio"] {
+  accent-color: var(--gold);
+}
+.checkout-ship-method:has(input[type="radio"]:checked) {
+  border-color: var(--gold);
+  background: var(--gold-glow);
+}
+.checkout-ship-method div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.checkout-ship-method__price {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 /* ── E-Commerce: Price badges, Cart, Checkout, Orders ───────────────────── */
 
 /* Price on project cards */

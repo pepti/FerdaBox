@@ -3,15 +3,33 @@ const Cart  = require('../models/Cart');
 const { isConfigured: stripeIsConfigured } = require('../config/stripe');
 const stripeService = require('../services/stripeService');
 const { sendOrderReceipt } = require('../services/emailService');
+const { SHIPPING_METHODS, getShippingPrice } = require('../config/shipping');
+const { validateShippingAddress } = require('../middleware/validate');
 
 const orderController = {
   async checkout(req, res, next) {
     try {
-      const { name, email, phone, address, notes } = req.body;
+      const {
+        name, email, phone, notes,
+        shipping_method: shippingMethod = 'flat_rate',
+        shipping_address: shippingAddress = null,
+        // Legacy free-text address kept for backward compat: if a client still
+        // sends `address` we'll store it alongside the structured JSON.
+        address: legacyAddress = '',
+      } = req.body;
+
       const errors = [];
-      if (!name?.trim())    errors.push('name is required');
-      if (!email?.trim())   errors.push('email is required');
-      if (!address?.trim()) errors.push('shipping address is required');
+      if (!name?.trim())  errors.push('name is required');
+      if (!email?.trim()) errors.push('email is required');
+      if (!SHIPPING_METHODS[shippingMethod]) {
+        errors.push('shipping_method must be flat_rate or local_pickup');
+      }
+
+      const method = SHIPPING_METHODS[shippingMethod];
+      if (method?.requiresAddress) {
+        const addrErrors = validateShippingAddress(shippingAddress);
+        errors.push(...addrErrors);
+      }
       if (errors.length) return res.status(400).json({ error: errors.join('; '), code: 400 });
 
       const cartItems = await Cart.getByUser(req.user.id);
@@ -19,7 +37,21 @@ const orderController = {
         return res.status(400).json({ error: 'Cart is empty', code: 400 });
       }
 
-      const order = await Order.create(req.user.id, cartItems, { name, email, phone, address, notes });
+      // This legacy endpoint charges ISK only (it doesn't touch Stripe).
+      const shippingAmount = getShippingPrice(shippingMethod, 'ISK');
+      // Derive a legacy-format address string for the existing shipping_address
+      // column from the structured fields, falling back to the caller-supplied
+      // free-text address when the method is local_pickup (no structured addr).
+      const legacyAddrText = shippingAddress
+        ? [shippingAddress.line1, shippingAddress.line2, shippingAddress.city, shippingAddress.postal, shippingAddress.country]
+            .filter(Boolean).join('\n')
+        : legacyAddress.trim() || '—';
+
+      const order = await Order.create(
+        req.user.id, cartItems,
+        { name, email, phone, address: legacyAddrText, notes },
+        { shippingMethod, shippingAmount, shippingAddressJson: method.requiresAddress ? shippingAddress : null },
+      );
       res.status(201).json(order);
     } catch (err) {
       if (err.statusCode) return res.status(err.statusCode).json({ error: err.message, code: err.statusCode });
@@ -75,12 +107,24 @@ const orderController = {
         return res.status(503).json({ error: 'Stripe checkout is not configured', code: 503 });
       }
 
-      const { name, email, phone, address, notes, currency = 'ISK' } = req.body;
+      const {
+        name, email, phone, notes, currency = 'ISK',
+        shipping_method: shippingMethod = 'flat_rate',
+        shipping_address: shippingAddress = null,
+        address: legacyAddress = '',
+      } = req.body;
+
       const errors = [];
-      if (!name?.trim())    errors.push('name is required');
-      if (!email?.trim())   errors.push('email is required');
-      if (!address?.trim()) errors.push('shipping address is required');
+      if (!name?.trim())  errors.push('name is required');
+      if (!email?.trim()) errors.push('email is required');
       if (!['ISK', 'EUR'].includes(currency)) errors.push('currency must be ISK or EUR');
+      if (!SHIPPING_METHODS[shippingMethod]) {
+        errors.push('shipping_method must be flat_rate or local_pickup');
+      }
+      const method = SHIPPING_METHODS[shippingMethod];
+      if (method?.requiresAddress) {
+        errors.push(...validateShippingAddress(shippingAddress));
+      }
       if (errors.length) return res.status(400).json({ error: errors.join('; '), code: 400 });
 
       const cartItems = await Cart.getByUser(req.user.id);
@@ -88,13 +132,22 @@ const orderController = {
         return res.status(400).json({ error: 'Cart is empty', code: 400 });
       }
 
+      const shippingAmount = getShippingPrice(shippingMethod, currency);
+      const legacyAddrText = shippingAddress
+        ? [shippingAddress.line1, shippingAddress.line2, shippingAddress.city, shippingAddress.postal, shippingAddress.country]
+            .filter(Boolean).join('\n')
+        : legacyAddress.trim() || '—';
+
       // createPending picks price (ISK) or price_eur (EUR) per item, rejects
       // EUR orders that include products without a price_eur, and stores the
       // currency on the order row so receipts/order-history render correctly.
       const order = await Order.createPending(
         req.user.id, cartItems,
-        { name, email, phone, address, notes },
-        { currency },
+        { name, email, phone, address: legacyAddrText, notes },
+        {
+          currency, shippingMethod, shippingAmount,
+          shippingAddressJson: method.requiresAddress ? shippingAddress : null,
+        },
       );
 
       const session = await stripeService.createCheckoutSession({
@@ -105,6 +158,8 @@ const orderController = {
           quantity: it.quantity,
         })),
         currency,
+        shippingAmount: stripeService.toStripeAmount(shippingAmount, currency),
+        shippingMethodLabel: method.label,
         customerEmail: email,
         orderId: order.id,
       });

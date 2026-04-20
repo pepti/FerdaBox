@@ -20,6 +20,8 @@ async function createCheckoutSession({
   currency = 'ISK',
   customerEmail = null,
   orderId,
+  shippingAmount = 0,      // already in Stripe's minor units
+  shippingMethodLabel = 'Shipping',
 }) {
   const stripe = getStripe();
 
@@ -34,6 +36,20 @@ async function createCheckoutSession({
     },
     quantity: it.quantity,
   }));
+
+  // Shipping is added as its own line rather than via Stripe's Shipping Rates
+  // because rates are currency-locked per rate object — keeping shipping in the
+  // line items lets the same code path handle ISK and EUR sessions.
+  if (shippingAmount > 0) {
+    line_items.push({
+      price_data: {
+        currency: currency.toLowerCase(),
+        product_data: { name: shippingMethodLabel || 'Shipping' },
+        unit_amount: shippingAmount,
+      },
+      quantity: 1,
+    });
+  }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

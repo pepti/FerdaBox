@@ -262,6 +262,50 @@ function validatePasswordChange(req, res, next) {
   next();
 }
 
+// ── Shipping address validation ───────────────────────────────────────────────
+
+// ISO 3166-1 alpha-2 for country; we accept anything that's 2 uppercase letters.
+// Server does the final authority check — clients must uppercase before send.
+const COUNTRY_RE = /^[A-Z]{2}$/;
+
+// Validates a structured shipping address object.
+// Returns an array of error strings (empty when valid).
+function validateShippingAddress(addr) {
+  const errors = [];
+  if (!addr || typeof addr !== 'object' || Array.isArray(addr)) {
+    errors.push('shipping_address must be an object');
+    return errors;
+  }
+  const { line1, line2, city, postal, country, phone } = addr;
+  if (!line1 || typeof line1 !== 'string' || line1.trim().length === 0) {
+    errors.push('shipping_address.line1 is required');
+  } else if (line1.length > 200) {
+    errors.push('shipping_address.line1 must be at most 200 characters');
+  }
+  if (line2 != null && line2 !== '') {
+    if (typeof line2 !== 'string' || line2.length > 200)
+      errors.push('shipping_address.line2 must be a string of at most 200 characters');
+  }
+  if (!city || typeof city !== 'string' || city.trim().length === 0) {
+    errors.push('shipping_address.city is required');
+  } else if (city.length > 100) {
+    errors.push('shipping_address.city must be at most 100 characters');
+  }
+  if (!postal || typeof postal !== 'string' || postal.trim().length === 0) {
+    errors.push('shipping_address.postal is required');
+  } else if (postal.length > 20) {
+    errors.push('shipping_address.postal must be at most 20 characters');
+  }
+  if (!country || typeof country !== 'string' || !COUNTRY_RE.test(country)) {
+    errors.push('shipping_address.country must be a 2-letter ISO country code (e.g. IS, EU)');
+  }
+  if (phone != null && phone !== '') {
+    if (typeof phone !== 'string' || !PHONE_RE.test(phone))
+      errors.push('shipping_address.phone must be a valid phone number');
+  }
+  return errors;
+}
+
 // ── Media validation ──────────────────────────────────────────────────────────
 
 const MAX_CAPTION_LEN = 500;
@@ -578,5 +622,6 @@ module.exports = {
   validateNews,
   validateNewsMediaUpdate,
   validateNewsMediaReorder,
+  validateShippingAddress,
   ALLOWED_AVATARS,
 };
