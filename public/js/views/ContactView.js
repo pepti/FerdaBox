@@ -1,23 +1,100 @@
 // ContactView — /contact page for Ferda Box
-// Sections: heading + description, contact info cards, inquiry form
+// Hero + contact-info cards + inquiry form. Admin/moderator can toggle an
+// in-page edit mode that makes hero text + contact info editable inline
+// and persists to the site_content JSONB store (key: 'contact_page').
 
 import { t } from '../i18n/index.js';
+import { getUser, getCSRFToken } from '../services/auth.js';
+import { escHtml } from '../utils/escHtml.js';
+import { showToast } from '../components/Toast.js';
+
+const CONTENT_KEY = 'contact_page';
+
+// Default content mirrors the previous t()-based copy so first-time loads
+// before the admin edits anything look identical to the old page.
+function defaultContent() {
+  return {
+    hero_eyebrow:  t('contact.subheading'),
+    hero_title:    t('contact.heading'),
+    hero_subtitle: t('contact.description'),
+    card_email_label:    t('contact.emailLabel'),
+    card_email_value:    t('contact.emailValue'),
+    card_phone_label:    t('contact.phoneLabel'),
+    card_phone_value:    t('contact.phoneValue'),
+    card_location_label: t('contact.locationLabel'),
+    card_location_value: t('contact.locationValue'),
+    card_reply_time:     t('contact.replyTime'),
+    form_title:          t('contact.subheading'),
+  };
+}
 
 export class ContactView {
-  constructor() {}
+  constructor() {
+    this._content   = defaultContent();
+    this._editMode  = false;
+    this._view      = null;
+  }
 
   async render() {
     const view = document.createElement('div');
     view.className = 'view contact-view';
+    this._view = view;
 
-    view.innerHTML = `
+    // Fetch saved content; on any error we silently fall back to defaults.
+    try {
+      const res = await fetch(`/api/v1/content/${CONTENT_KEY}`, { credentials: 'include' });
+      if (res.ok) {
+        const stored = await res.json();
+        this._content = { ...this._content, ...stored };
+      }
+    } catch { /* keep defaults */ }
+
+    this._paint();
+    return view;
+  }
+
+  _canEdit() {
+    const u = getUser();
+    return u && (u.role === 'admin' || u.role === 'moderator');
+  }
+
+  _field(key, { tag = 'span', extraClass = '' } = {}) {
+    // Render a single editable-field slot.  In edit mode the attribute
+    // `contenteditable=true` lets the admin type inline; otherwise the
+    // value is just a static node.  escHtml'd on both paths.
+    const attrs = [
+      `data-field="${escHtml(key)}"`,
+      extraClass ? `class="${escHtml(extraClass)}"` : '',
+      this._editMode ? 'contenteditable="true"' : '',
+    ].filter(Boolean).join(' ');
+    return `<${tag} ${attrs}>${escHtml(this._content[key] ?? '')}</${tag}>`;
+  }
+
+  _editToggleButton() {
+    if (!this._canEdit()) return '';
+    return `
+      <div class="contact-edit-bar">
+        <button type="button" class="btn btn--sm ${this._editMode ? 'btn--primary' : 'btn--outline'}"
+                id="contact-edit-toggle">
+          ${this._editMode ? 'Save' : 'Edit page'}
+        </button>
+        ${this._editMode
+          ? `<button type="button" class="btn btn--sm btn--ghost" id="contact-edit-cancel">Cancel</button>`
+          : ''}
+      </div>`;
+  }
+
+  _paint() {
+    this._view.innerHTML = `
       <main class="main" id="main-content">
+        ${this._editToggleButton()}
+
         <section class="contact-hero" aria-label="${t('contact.heading')}">
           <div class="contact-hero__bg" aria-hidden="true"></div>
           <div class="contact-hero__inner">
-            <p class="contact-hero__eyebrow">${t('contact.subheading')}</p>
-            <h1 class="contact-hero__title">${t('contact.heading')}</h1>
-            <p class="contact-hero__subtitle">${t('contact.description')}</p>
+            <p class="contact-hero__eyebrow">${this._field('hero_eyebrow')}</p>
+            <h1 class="contact-hero__title">${this._field('hero_title')}</h1>
+            <p class="contact-hero__subtitle">${this._field('hero_subtitle')}</p>
           </div>
         </section>
 
@@ -34,8 +111,8 @@ export class ContactView {
                   </svg>
                 </div>
                 <div class="contact-card__body">
-                  <div class="contact-card__label">${t('contact.emailLabel')}</div>
-                  <div class="contact-card__value">${t('contact.emailValue')}</div>
+                  <div class="contact-card__label">${this._field('card_email_label')}</div>
+                  <div class="contact-card__value">${this._field('card_email_value')}</div>
                 </div>
               </div>
 
@@ -50,8 +127,8 @@ export class ContactView {
                   </svg>
                 </div>
                 <div class="contact-card__body">
-                  <div class="contact-card__label">${t('contact.phoneLabel')}</div>
-                  <div class="contact-card__value">${t('contact.phoneValue')}</div>
+                  <div class="contact-card__label">${this._field('card_phone_label')}</div>
+                  <div class="contact-card__value">${this._field('card_phone_value')}</div>
                 </div>
               </div>
 
@@ -64,9 +141,9 @@ export class ContactView {
                   </svg>
                 </div>
                 <div class="contact-card__body">
-                  <div class="contact-card__label">${t('contact.locationLabel')}</div>
-                  <div class="contact-card__value">${t('contact.locationValue')}</div>
-                  <div class="contact-card__meta">${t('contact.replyTime')}</div>
+                  <div class="contact-card__label">${this._field('card_location_label')}</div>
+                  <div class="contact-card__value">${this._field('card_location_value')}</div>
+                  <div class="contact-card__meta">${this._field('card_reply_time')}</div>
                 </div>
               </div>
 
@@ -76,11 +153,10 @@ export class ContactView {
 
         <section class="contact-form-section" id="contact-form-section" aria-label="${t('contact.heading')}">
           <div class="contact-form-section__inner">
-            <h2 class="contact-form-section__title">${t('contact.subheading')}</h2>
+            <h2 class="contact-form-section__title">${this._field('form_title', { tag: 'span' })}</h2>
 
             <form class="contact-form contact-form--page" id="contact-page-form" novalidate
                   aria-label="${t('contact.heading')}">
-              <!-- Honeypot -->
               <input type="text" name="website" id="contact-page-honeypot"
                      tabindex="-1" autocomplete="off" aria-hidden="true"
                      style="position:absolute;left:-9999px;opacity:0;height:0;width:0;pointer-events:none;" />
@@ -121,8 +197,60 @@ export class ContactView {
       </main>
     `;
 
-    this._initForm(view);
-    return view;
+    this._initForm(this._view);
+    this._bindEditToggle();
+
+    // In edit mode: block the submit button accidentally firing while the
+    // admin is clicking around contenteditable spans.
+    if (this._editMode) {
+      const submit = this._view.querySelector('#contact-page-submit');
+      if (submit) submit.disabled = true;
+    }
+  }
+
+  _bindEditToggle() {
+    const toggle = this._view.querySelector('#contact-edit-toggle');
+    const cancel = this._view.querySelector('#contact-edit-cancel');
+    if (toggle) {
+      toggle.addEventListener('click', async () => {
+        if (!this._editMode) {
+          this._editMode = true;
+          this._paint();
+          return;
+        }
+        // Save: read all data-field spans
+        const updated = { ...this._content };
+        this._view.querySelectorAll('[data-field]').forEach(el => {
+          const key = el.dataset.field;
+          if (key) updated[key] = el.innerText.trim();
+        });
+        try {
+          const token = await getCSRFToken();
+          const res = await fetch(`/api/v1/content/${CONTENT_KEY}`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'X-CSRF-Token': token } : {}),
+            },
+            body: JSON.stringify(updated),
+          });
+          if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
+          this._content = await res.json();
+          this._editMode = false;
+          this._paint();
+          showToast('Contact page saved', 'success');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    }
+    if (cancel) {
+      cancel.addEventListener('click', () => {
+        this._editMode = false;
+        this._paint();
+      });
+    }
   }
 
   // ── Form submission ──────────────────────────────────────────────────

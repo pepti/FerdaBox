@@ -3,6 +3,30 @@
    Reuses .contact-form, .contact-form__* from home.css
    ───────────────────────────────────────────────────────────── */
 
+/* Admin edit bar (visible only to admin/moderator) */
+.contact-edit-bar {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+  padding: var(--sp-3) var(--sp-4);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Give contenteditable fields a subtle dashed outline so the admin can see
+   which elements are editable.  Only kicks in while the view is in edit mode. */
+.contact-view [contenteditable="true"] {
+  outline: 1px dashed rgba(201, 168, 76, 0.5);
+  outline-offset: 4px;
+  border-radius: 2px;
+  min-width: 2em;
+  cursor: text;
+}
+.contact-view [contenteditable="true"]:focus {
+  outline: 2px solid var(--gold, #c9a84c);
+  outline-offset: 3px;
+}
+
 .contact-view {
   background: var(--bg-base);
   min-height: 100vh;
