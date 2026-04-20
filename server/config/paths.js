@@ -22,4 +22,5 @@ module.exports = {
   UPLOAD_ROOT,
   newsUploadDir(articleId)    { return path.join(UPLOAD_ROOT, 'news',     String(articleId)); },
   projectUploadDir(projectId) { return path.join(UPLOAD_ROOT, 'projects', String(projectId)); },
+  userAvatarDir()             { return path.join(UPLOAD_ROOT, 'avatars'); },
 };
