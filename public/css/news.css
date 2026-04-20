@@ -944,3 +944,86 @@
   .article-media__grid { grid-template-columns: 1fr; }
   .news-editor__media-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
+
+/* Media panel additions (Phase 3.3): fieldset legend, upload/YouTube controls,
+   per-item action bar, COVER badge, pill. */
+.news-editor__media {
+  border: 1px solid var(--border-dim);
+  padding: var(--sp-4);
+  margin: var(--sp-4) 0;
+  background: var(--bg-surface);
+}
+.news-editor__media-legend {
+  padding: 0 var(--sp-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold, #c8aa6e);
+  text-transform: uppercase;
+}
+.news-editor__media-controls {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+}
+.news-editor__media-upload-btn {
+  display: inline-block;
+  padding: 8px 14px;
+  background: var(--gold, #c8aa6e);
+  color: #000;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid var(--gold, #c8aa6e);
+}
+.news-editor__media-upload-btn:hover { filter: brightness(1.1); }
+.news-editor__media-youtube {
+  display: flex;
+  gap: var(--sp-2);
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+.news-editor__media-youtube input { flex: 1; }
+.news-editor__media-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: var(--sp-2) 0;
+}
+.news-editor__media-item-actions {
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.news-editor__media-item-actions button { font-size: 0.7rem; padding: 4px 8px; }
+.news-editor__media-item--cover {
+  outline: 2px solid var(--gold, #c8aa6e);
+  outline-offset: -2px;
+}
+.news-editor__media-cover-badge {
+  position: absolute;
+  top: 8px; left: 8px;
+  background: var(--gold, #c8aa6e);
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+.news-editor__media-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff6b6b;
+  border-radius: 2px;
+}

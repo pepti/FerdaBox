@@ -272,13 +272,39 @@ export class NewsView {
                       required rows="16"
                       placeholder="<p>Full article content…</p>">${_esc(article?.body || '')}</textarea>
           </label>
-          <label class="news-editor__label">Cover Image URL
-            <input class="news-editor__input" name="cover_image" type="text"
-                   value="${_esc(article?.cover_image || '')}" placeholder="https:// or /assets/…">
-          </label>
+
+          <!-- Cover image is picked via Set Cover buttons in the Media panel
+               below, never typed by hand.  The hidden input carries the
+               current cover_image value into the save payload. -->
+          <input type="hidden" name="cover_image" value="${_esc(article?.cover_image || '')}">
+
+          <fieldset class="news-editor__media" id="news-editor-media">
+            <legend class="news-editor__media-legend">Media</legend>
+            ${isNew ? `
+              <p class="news-editor__media-hint">Save the article first to enable image and video uploads.</p>
+            ` : `
+              <div class="news-editor__media-controls">
+                <label class="news-editor__media-upload-btn">
+                  <input type="file" id="news-media-file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden>
+                  <span>Upload image / video…</span>
+                </label>
+                <div class="news-editor__media-youtube">
+                  <input class="news-editor__input" id="news-media-yt-url" type="url"
+                         placeholder="https://www.youtube.com/watch?v=…">
+                  <button type="button" class="news-editor__btn news-editor__btn--cancel"
+                          id="news-media-yt-add">Add YouTube</button>
+                </div>
+              </div>
+              <p class="news-editor__media-hint">Pick any image below as the article cover — the selected one shows a COVER badge.</p>
+              <div class="news-editor__media-grid" id="news-media-grid" aria-live="polite">
+                <p class="news-editor__media-empty">Loading media…</p>
+              </div>
+            `}
+          </fieldset>
+
           <div class="news-editor__row news-editor__row--check">
             <label class="news-editor__check">
-              <input type="checkbox" name="published" ${article?.published ? 'checked' : ''}>
+              <input type="checkbox" name="published" ${article?.published === false ? '' : 'checked'}>
               Published
             </label>
           </div>
@@ -312,6 +338,163 @@ export class NewsView {
     });
 
     overlay.querySelector('[name="title"]').focus();
+
+    // Wire media controls + load existing media (only for saved articles)
+    if (!isNew) {
+      this._bindMediaControls(overlay, article.id);
+      this._loadNewsMedia(overlay, article.id);
+    }
+  }
+
+  // ── News media management (inside the editor) ───────────────────────
+  async _loadNewsMedia(overlay, articleId) {
+    const grid = overlay.querySelector('#news-media-grid');
+    if (!grid) return;
+    try {
+      const res = await fetch(`/api/v1/news/${articleId}/media`, { credentials: 'include' });
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to load media');
+      const items = await res.json();
+      this._renderNewsMedia(overlay, items);
+    } catch (err) {
+      grid.innerHTML = `<p class="news-editor__media-empty news-editor__media-empty--error">${_esc(err.message)}</p>`;
+    }
+  }
+
+  _renderNewsMedia(overlay, items) {
+    const grid  = overlay.querySelector('#news-media-grid');
+    const cover = overlay.querySelector('[name="cover_image"]').value || '';
+    if (!items || items.length === 0) {
+      grid.innerHTML = '<p class="news-editor__media-empty">No media yet. Upload an image or paste a YouTube URL above.</p>';
+      return;
+    }
+    grid.innerHTML = items.map(m => this._mediaItemHtml(m, cover)).join('');
+  }
+
+  _mediaItemHtml(m, coverPath) {
+    const isImage   = m.kind === 'image';
+    const isYoutube = m.kind === 'youtube';
+    const isCover   = !isYoutube && coverPath && m.file_path === coverPath;
+    const thumb = isYoutube
+      ? `<img alt="YouTube video" src="https://img.youtube.com/vi/${_esc(m.youtube_id)}/hqdefault.jpg" loading="lazy">`
+      : isImage
+        ? `<img alt="${_esc(m.caption || '')}" src="${_esc(m.file_path)}" loading="lazy">`
+        : `<video muted playsinline preload="metadata"><source src="${_esc(m.file_path)}"></video>`;
+    return `
+      <div class="news-editor__media-item ${isCover ? 'news-editor__media-item--cover' : ''}" data-media-id="${m.id}" data-media-path="${_esc(m.file_path || '')}" data-media-kind="${_esc(m.kind)}">
+        <div class="news-editor__media-thumb">
+          ${thumb}
+          ${isCover ? '<span class="news-editor__media-cover-badge">COVER</span>' : ''}
+        </div>
+        <div class="news-editor__media-item-actions">
+          ${isYoutube
+            ? '<span class="news-editor__media-pill">YouTube</span>'
+            : (isCover
+                ? '<button type="button" class="news-editor__btn news-editor__btn--cancel" disabled>✓ Cover</button>'
+                : '<button type="button" class="news-editor__btn news-editor__btn--cancel" data-action="set-cover">Set Cover</button>')
+          }
+          <button type="button" class="news-editor__btn news-editor__btn--cancel" data-action="delete">Delete</button>
+        </div>
+      </div>`;
+  }
+
+  _bindMediaControls(overlay, articleId) {
+    const fileInput = overlay.querySelector('#news-media-file');
+    const ytBtn     = overlay.querySelector('#news-media-yt-add');
+    const ytUrl     = overlay.querySelector('#news-media-yt-url');
+    const grid      = overlay.querySelector('#news-media-grid');
+    const status    = overlay.querySelector('#editor-status');
+
+    // File upload
+    fileInput?.addEventListener('change', async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      status.textContent = 'Uploading…';
+      status.className   = 'news-editor__status';
+      try {
+        const token = await getCsrfHeaders().then(h => h['X-CSRF-Token']).catch(() => null);
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(`/api/v1/news/${articleId}/media`, {
+          method: 'POST', credentials: 'include',
+          headers: token ? { 'X-CSRF-Token': token } : {},
+          body: fd,
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Upload failed');
+        status.textContent = '';
+        fileInput.value = '';
+        await this._loadNewsMedia(overlay, articleId);
+      } catch (err) {
+        status.className   = 'news-editor__status news-editor__status--error';
+        status.textContent = err.message;
+      }
+    });
+
+    // YouTube add
+    ytBtn?.addEventListener('click', async () => {
+      const url = ytUrl.value.trim();
+      if (!url) return;
+      status.textContent = 'Adding…';
+      status.className   = 'news-editor__status';
+      try {
+        const headers = await getCsrfHeaders();
+        const res = await fetch(`/api/v1/news/${articleId}/media/youtube`, {
+          method: 'POST', credentials: 'include', headers,
+          body: JSON.stringify({ url }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Add failed');
+        ytUrl.value = '';
+        status.textContent = '';
+        await this._loadNewsMedia(overlay, articleId);
+      } catch (err) {
+        status.className   = 'news-editor__status news-editor__status--error';
+        status.textContent = err.message;
+      }
+    });
+
+    // Set-cover / delete (event delegated on the grid)
+    grid?.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const item = btn.closest('.news-editor__media-item');
+      if (!item) return;
+      const mediaId   = item.dataset.mediaId;
+      const mediaPath = item.dataset.mediaPath;
+      const action    = btn.dataset.action;
+
+      if (action === 'set-cover') {
+        overlay.querySelector('[name="cover_image"]').value = mediaPath;
+        const items = Array.from(grid.querySelectorAll('.news-editor__media-item'))
+          .map(el => ({
+            id: Number(el.dataset.mediaId),
+            kind: el.dataset.mediaKind,
+            file_path: el.dataset.mediaPath,
+            caption: '',
+          }));
+        this._renderNewsMedia(overlay, items);
+        return;
+      }
+
+      if (action === 'delete') {
+        if (!confirm('Delete this media item?')) return;
+        try {
+          const headers = await getCsrfHeaders();
+          const res = await fetch(`/api/v1/news/${articleId}/media/${mediaId}`, {
+            method: 'DELETE', credentials: 'include', headers,
+          });
+          if (!res.ok && res.status !== 204) {
+            throw new Error((await res.json()).error || 'Delete failed');
+          }
+          // If we just deleted the current cover, clear cover_image.
+          if (overlay.querySelector('[name="cover_image"]').value === mediaPath) {
+            overlay.querySelector('[name="cover_image"]').value = '';
+          }
+          await this._loadNewsMedia(overlay, articleId);
+        } catch (err) {
+          status.className   = 'news-editor__status news-editor__status--error';
+          status.textContent = err.message;
+        }
+      }
+    });
   }
 
   async _submitEditor(form, overlay, articleId, isNew) {
