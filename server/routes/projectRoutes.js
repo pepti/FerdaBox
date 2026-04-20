@@ -18,6 +18,11 @@ router.get('/featured',     projectController.getFeatured);
 router.get('/:id/media',    projectController.getMedia);
 router.get('/:id/sections', projectController.getSections);
 router.get('/:id/videos',   projectController.getVideos);
+// Admin variant list (all incl. inactive); the public view of variants lives
+// inside GET /:id where only active variants are returned.
+router.get('/:id/variants',
+  requireAuth, requireRole('admin', 'moderator'),
+  projectController.listVariants);
 router.get('/:id',          projectController.getOne);
 
 // ── Project create / update (admin + moderator) ────────────────────────────────
@@ -115,6 +120,19 @@ router.post('/:id/videos',
 router.patch('/:id/videos/:videoId',
   requireAuth, requireRole('admin', 'moderator'), csrfProtect, validateVideoUpdate,
   projectController.updateVideo);
+
+// ── Variant management (admin + moderator) ─────────────────────────────────
+router.post('/:id/variants',
+  requireAuth, requireRole('admin', 'moderator'), csrfProtect,
+  projectController.createVariant);
+
+router.patch('/:id/variants/:variantId',
+  requireAuth, requireRole('admin', 'moderator'), csrfProtect,
+  projectController.updateVariant);
+
+router.delete('/:id/variants/:variantId',
+  requireAuth, requireRole('admin', 'moderator'), csrfProtect,
+  projectController.removeVariant);
 
 // ── Delete (admin + moderator) ─────────────────────────────────────────────────
 router.delete('/:id',

@@ -2,6 +2,7 @@ const fs      = require('fs');
 const path    = require('path');
 const Project = require('../models/Project');
 const { ProjectSection, ProjectVideo } = require('../models/Project');
+const ProductVariant = require('../models/ProductVariant');
 const db      = require('../config/database');
 const { MAX_IMAGE_SIZE } = require('../middleware/upload');
 const { parseYouTubeId } = require('../utils/youtube');
@@ -52,7 +53,92 @@ const projectController = {
     try {
       const project = await Project.findById(req.params.id);
       if (!project) return res.status(404).json({ error: 'Project not found', code: 404 });
+      // Include variants on product detail so the frontend can render a
+      // picker without a second round-trip.  Public endpoint: only active.
+      project.variants = await ProductVariant.listForProject(project.id, { activeOnly: true });
       res.json(project);
+    } catch (err) { next(err); }
+  },
+
+  // ── Variants (admin) ────────────────────────────────────────────────────
+  // Admins see all variants including inactive; the public getOne above
+  // filters to active only.
+  async listVariants(req, res, next) {
+    try {
+      const project = await Project.findById(req.params.id);
+      if (!project) return res.status(404).json({ error: 'Project not found', code: 404 });
+      const variants = await ProductVariant.listForProject(project.id, { activeOnly: false });
+      res.json(variants);
+    } catch (err) { next(err); }
+  },
+
+  async createVariant(req, res, next) {
+    try {
+      const project = await Project.findById(req.params.id);
+      if (!project) return res.status(404).json({ error: 'Project not found', code: 404 });
+
+      const { sku, attributes, price, price_eur, stock_quantity, active, sort_order } = req.body;
+      if (!sku || typeof sku !== 'string' || sku.trim().length === 0) {
+        return res.status(400).json({ error: 'sku is required', code: 400 });
+      }
+      if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) {
+        return res.status(400).json({ error: 'attributes must be a JSON object', code: 400 });
+      }
+
+      try {
+        const variant = await ProductVariant.create({
+          project_id: project.id, sku: sku.trim(), attributes,
+          price, price_eur, stock_quantity, active, sort_order,
+        });
+        return res.status(201).json(variant);
+      } catch (err) {
+        if (err.code === '23505') {
+          return res.status(409).json({ error: 'A variant with this SKU or attribute combination already exists', code: 409 });
+        }
+        throw err;
+      }
+    } catch (err) { next(err); }
+  },
+
+  async updateVariant(req, res, next) {
+    try {
+      const variant = await ProductVariant.findById(req.params.variantId);
+      if (!variant) return res.status(404).json({ error: 'Variant not found', code: 404 });
+      if (variant.project_id !== Number(req.params.id)) {
+        return res.status(400).json({ error: 'Variant does not belong to this product', code: 400 });
+      }
+      try {
+        const updated = await ProductVariant.update(req.params.variantId, req.body);
+        return res.json(updated);
+      } catch (err) {
+        if (err.code === '23505') {
+          return res.status(409).json({ error: 'Duplicate SKU or attribute combination', code: 409 });
+        }
+        throw err;
+      }
+    } catch (err) { next(err); }
+  },
+
+  async removeVariant(req, res, next) {
+    try {
+      const variant = await ProductVariant.findById(req.params.variantId);
+      if (!variant) return res.status(404).json({ error: 'Variant not found', code: 404 });
+      if (variant.project_id !== Number(req.params.id)) {
+        return res.status(400).json({ error: 'Variant does not belong to this product', code: 400 });
+      }
+      try {
+        await ProductVariant.remove(req.params.variantId);
+        return res.status(204).send();
+      } catch (err) {
+        // FK RESTRICT from order_items — variant has historic orders
+        if (err.code === '23503') {
+          return res.status(409).json({
+            error: 'Variant has order history; deactivate it instead of deleting',
+            code: 409,
+          });
+        }
+        throw err;
+      }
     } catch (err) { next(err); }
   },
 

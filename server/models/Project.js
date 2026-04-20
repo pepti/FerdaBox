@@ -3,7 +3,7 @@
 const db = require('../config/database');
 
 // Explicit column list — avoids SELECT * so schema changes are explicit
-const COLUMNS = 'id, title, description, category, year, tools_used, image_url, featured, video_section_position, price, price_eur, compare_at_price, stock_quantity, sku, status, title_is, description_is, created_at, updated_at';
+const COLUMNS = 'id, title, description, category, year, tools_used, image_url, featured, video_section_position, price, price_eur, compare_at_price, stock_quantity, sku, status, variant_axes, title_is, description_is, created_at, updated_at';
 
 class Project {
   // ── READ ──────────────────────────────────────────────────────────────────
@@ -77,14 +77,21 @@ class Project {
 
   static async update(id, data) {
     // Build SET clause dynamically — only update provided fields
-    const allowed = ['title', 'description', 'category', 'year', 'tools_used', 'image_url', 'featured', 'video_section_position', 'price', 'price_eur', 'compare_at_price', 'stock_quantity', 'sku', 'status', 'title_is', 'description_is'];
+    const allowed = ['title', 'description', 'category', 'year', 'tools_used', 'image_url', 'featured', 'video_section_position', 'price', 'price_eur', 'compare_at_price', 'stock_quantity', 'sku', 'status', 'variant_axes', 'title_is', 'description_is'];
+    const jsonbFields = new Set(['variant_axes']);
     const sets   = [];
     const params = [];
 
     for (const field of allowed) {
       if (data[field] !== undefined) {
-        params.push(field === 'year' ? Number(data[field]) : data[field]);
-        sets.push(`${field} = $${params.length}`);
+        let v = data[field];
+        if (jsonbFields.has(field)) {
+          v = typeof v === 'string' ? v : JSON.stringify(v);
+        } else if (field === 'year') {
+          v = Number(v);
+        }
+        params.push(v);
+        sets.push(jsonbFields.has(field) ? `${field} = $${params.length}::jsonb` : `${field} = $${params.length}`);
       }
     }
 

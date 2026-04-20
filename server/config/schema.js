@@ -424,6 +424,59 @@ const migrations = [
       `ALTER TABLE orders ADD CONSTRAINT orders_currency_check CHECK (currency IN ('ISK','EUR'))`,
     ],
   },
+  {
+    // Product variants — e.g. size + colour axes on a travel box.
+    // Adds per-SKU stock + optional price overrides.  Cart and order lines
+    // gain a nullable variant_id so products without variants continue to
+    // work unchanged.  order_items also snapshots the variant attributes
+    // so historical orders stay readable even if a variant is later edited.
+    name: '022_product_variants',
+    statements: [
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS variant_axes JSONB NOT NULL DEFAULT '[]'::jsonb`,
+
+      `CREATE TABLE IF NOT EXISTS product_variants (
+        id             SERIAL       PRIMARY KEY,
+        project_id     INTEGER      NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        sku            TEXT         NOT NULL,
+        attributes     JSONB        NOT NULL,
+        price          DECIMAL(10,2),
+        price_eur      DECIMAL(10,2),
+        stock_quantity INTEGER      NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
+        active         BOOLEAN      NOT NULL DEFAULT TRUE,
+        sort_order     INTEGER      NOT NULL DEFAULT 0,
+        created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+        updated_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS uniq_product_variants_sku   ON product_variants (sku)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS uniq_product_variants_attrs ON product_variants (project_id, attributes)`,
+      `CREATE INDEX IF NOT EXISTS idx_product_variants_project_id ON product_variants (project_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_product_variants_active     ON product_variants (active) WHERE active = TRUE`,
+      `DROP TRIGGER IF EXISTS trg_product_variants_updated_at ON product_variants`,
+      `CREATE TRIGGER trg_product_variants_updated_at
+         BEFORE UPDATE ON product_variants
+         FOR EACH ROW EXECUTE FUNCTION set_updated_at()`,
+
+      // cart_items: drop the old (user, project) uniqueness so two variants
+      // of the same project can coexist in a cart.  Use partial unique
+      // indexes instead so we still reject true duplicates (same user +
+      // same project + same variant).
+      `ALTER TABLE cart_items DROP CONSTRAINT IF EXISTS cart_items_user_id_project_id_key`,
+      `ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS variant_id INTEGER REFERENCES product_variants(id) ON DELETE CASCADE`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS uniq_cart_items_user_project_novariant
+         ON cart_items (user_id, project_id) WHERE variant_id IS NULL`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS uniq_cart_items_user_variant
+         ON cart_items (user_id, variant_id) WHERE variant_id IS NOT NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_cart_items_variant_id ON cart_items (variant_id)`,
+
+      // order_items: record which variant was ordered, plus a snapshot of
+      // the variant's attributes so later edits don't rewrite history.
+      // RESTRICT on the FK so admins can't accidentally delete a variant
+      // that has order history.
+      `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_variant_id INTEGER REFERENCES product_variants(id) ON DELETE RESTRICT`,
+      `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS variant_attributes JSONB`,
+      `CREATE INDEX IF NOT EXISTS idx_order_items_variant_id ON order_items (product_variant_id)`,
+    ],
+  },
 ];
 
 module.exports = { migrations };
