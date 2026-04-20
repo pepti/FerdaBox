@@ -1,12 +1,15 @@
 import { projectApi } from '../api/projectApi.js';
 import { ProjectCard } from '../components/ProjectCard.js';
-import { FilterBar }   from '../components/FilterBar.js';
+import { ShopFilters, applyFilters } from '../components/ShopFilters.js';
+import * as currency from '../services/currency.js';
 import { t } from '../i18n/index.js';
 
 export class ProjectsView {
   constructor() {
     this.allProjects = [];
     this.grid = null;
+    this._filters = null;
+    this._unsubCurrency = null;
   }
 
   async render() {
@@ -16,7 +19,9 @@ export class ProjectsView {
     const main = document.createElement('main');
     main.className = 'main';
 
-    const filterBar = new FilterBar((category) => this._applyFilter(category));
+    this._filters = new ShopFilters({
+      onChange: () => this._applyAndRender(),
+    });
 
     const section = document.createElement('section');
     section.className = 'section';
@@ -26,7 +31,7 @@ export class ProjectsView {
         <span class="section__count" id="projects-count"></span>
       </div>
     `;
-    section.insertBefore(filterBar.render(), section.querySelector('.section__header').nextSibling);
+    section.insertBefore(this._filters.render(), section.querySelector('.section__header').nextSibling);
 
     this.grid = document.createElement('div');
     this.grid.className = 'project-grid';
@@ -36,6 +41,10 @@ export class ProjectsView {
     main.appendChild(section);
     view.appendChild(main);
 
+    // Re-render the grid when the user flips currency so price-sort and
+    // price-range filters pick the right currency field.
+    this._unsubCurrency = currency.subscribe(() => this._applyAndRender());
+
     this._loadProjects(view);
     return view;
   }
@@ -43,17 +52,16 @@ export class ProjectsView {
   async _loadProjects(view) {
     try {
       this.allProjects = await projectApi.getAll({ limit: 100 });
-      this._renderGrid(this.allProjects, view);
+      this._applyAndRender(view);
     } catch (err) {
       this.grid.innerHTML = `<div class="empty-state"><div class="empty-state__icon">⚠️</div>${t('products.loadError')}</div>`;
     }
   }
 
-  _applyFilter(category) {
-    const filtered = category === 'all'
-      ? this.allProjects
-      : this.allProjects.filter(p => p.category === category);
-    this._renderGrid(filtered);
+  _applyAndRender(view) {
+    const state = this._filters ? this._filters.getState() : {};
+    const filtered = applyFilters(this.allProjects, state);
+    this._renderGrid(filtered, view);
   }
 
   _renderGrid(projects, view) {
@@ -72,6 +80,11 @@ export class ProjectsView {
         }).render()
       );
     });
+  }
+
+  destroy() {
+    if (this._filters) this._filters.destroy();
+    if (this._unsubCurrency) this._unsubCurrency();
   }
 }
 
