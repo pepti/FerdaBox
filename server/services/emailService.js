@@ -147,4 +147,62 @@ async function sendPasswordResetEmail(to, token) {
   console.log(`[EmailService] Password reset email sent: id=${data.id}`);
 }
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail };
+// ── Order receipt email ───────────────────────────────────────────────────────
+
+async function sendOrderReceipt(order, items) {
+  const to = order.customer_email;
+  if (!to) {
+    console.log(`[EmailService] Order ${order.id} has no customer_email — receipt skipped`);
+    return;
+  }
+
+  if (!isConfigured()) {
+    console.log(`[EmailService] Resend not configured — receipt for order ${order.id} skipped`);
+    return;
+  }
+
+  const orderUrl = `${APP_URL}/#/orders/${order.id}`;
+
+  const rows = items.map(it => `
+    <tr>
+      <td style="padding:8px 0;color:#ddd;">${it.product_title} × ${it.quantity}</td>
+      <td style="padding:8px 0;color:#ddd;text-align:right;">
+        ${Number(it.unit_price * it.quantity).toLocaleString('is-IS')} kr.
+      </td>
+    </tr>
+  `).join('');
+
+  const subject = `Ferða Box — pöntun #${order.id} móttekin`;
+  const html = emailShell(subject, `
+    <h2 style="margin:0 0 16px;font-size:22px;color:#e0e0e0;">Takk fyrir pöntunina!</h2>
+    <p style="margin:0 0 24px;font-size:15px;color:#aaa;line-height:1.6;">
+      Við höfum móttekið pöntun þína.  Hér er yfirlitið:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border-collapse:collapse;">
+      ${rows}
+      <tr style="border-top:1px solid #333;">
+        <td style="padding:12px 0;color:#c9a84c;font-weight:600;">Samtals</td>
+        <td style="padding:12px 0;color:#c9a84c;font-weight:600;text-align:right;">
+          ${Number(order.total_price).toLocaleString('is-IS')} kr.
+        </td>
+      </tr>
+    </table>
+    <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
+      <tr>
+        <td style="background-color:#c9a84c;border-radius:8px;">
+          <a href="${orderUrl}"
+             style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:600;
+                    color:#0a0a0a;text-decoration:none;letter-spacing:0.5px;">
+            Skoða pöntun
+          </a>
+        </td>
+      </tr>
+    </table>
+  `);
+
+  const { data, error } = await getClient().emails.send({ from: FROM, to, subject, html });
+  if (error) throw new Error(`Resend error: ${error.message}`);
+  console.log(`[EmailService] Order receipt sent: id=${data.id} order=${order.id}`);
+}
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendOrderReceipt };

@@ -395,6 +395,22 @@ const migrations = [
       `ALTER TABLE users DROP COLUMN IF EXISTS party_access`,
     ],
   },
+  {
+    // Stripe integration columns on orders + webhook-event dedup table.
+    // Fields stay NULL until the Stripe checkout path is actually used
+    // (STRIPE_SECRET_KEY unset = existing /api/v1/orders flow runs unchanged).
+    name: '020_stripe_fields',
+    statements: [
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_session_id        TEXT`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_payment_intent_id TEXT`,
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS paid_at                  TIMESTAMPTZ`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_stripe_session_id ON orders (stripe_session_id) WHERE stripe_session_id IS NOT NULL`,
+      `CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+        event_id    TEXT        PRIMARY KEY,
+        received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`,
+    ],
+  },
 ];
 
 module.exports = { migrations };

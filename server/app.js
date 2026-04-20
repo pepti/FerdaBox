@@ -64,8 +64,10 @@ app.use(helmet({
       connectSrc: ["'self'", 'https://www.google-analytics.com', 'https://analytics.google.com'],
       fontSrc:    ["'self'", 'https://fonts.gstatic.com'],
       objectSrc:  ["'none'"],
-      // Allow YouTube iframes so project Video sections can embed videos.
-      frameSrc:   ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com'],
+      // Allow YouTube iframes and Stripe Checkout redirect (hosted checkout).
+      frameSrc:   ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://checkout.stripe.com'],
+      // Allow form POST to Stripe Checkout hosted page.
+      formAction: ["'self'", 'https://checkout.stripe.com'],
       // Helmet 8 adds upgrade-insecure-requests by default; disable it so the
       // site works over plain HTTP on LAN IPs (e.g. phone testing on 192.168.x.x).
       // The directive upgrades sub-resource requests to HTTPS — fine in production
@@ -76,9 +78,11 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// Restrict access to browser features not used by this app
+// Restrict access to browser features not used by this app.
+// payment=* is allowed so Stripe Checkout can use the Payment Request API
+// (Apple Pay / Google Pay wallets on compatible browsers).
 app.use((req, res, next) => {
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
 
@@ -106,6 +110,16 @@ app.use(cors({
 
 // ── A03 Injection: HTTP Parameter Pollution protection ────────────────────────
 app.use(hpp());
+
+// ── Stripe webhook — MUST be registered BEFORE express.json() so the raw
+// body bytes are available for HMAC signature verification.  This route is
+// deliberately NOT protected by CSRF (Stripe can't produce a CSRF token).
+// The handler verifies the stripe-signature header using STRIPE_WEBHOOK_SECRET
+// and returns 503 when Stripe is not configured.
+const orderController = require('./controllers/orderController');
+app.post('/api/v1/orders/stripe-webhook',
+  express.raw({ type: 'application/json', limit: '1mb' }),
+  orderController.handleStripeWebhook);
 
 // ── A04 Insecure Design: limit request body size (100 kb) ────────────────────
 app.use(express.json({ limit: '100kb' }));

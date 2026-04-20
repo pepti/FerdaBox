@@ -6,9 +6,10 @@ const { requireRole }  = require('../auth/roles');
 const { csrfProtect }  = require('../middleware/csrf');
 
 // User routes (authenticated)
-router.post('/',     requireAuth, csrfProtect, orderController.checkout);
-router.get('/',      requireAuth, orderController.getOrders);
-router.get('/:id',   requireAuth, orderController.getOrder);
+router.post('/',                 requireAuth, csrfProtect, orderController.checkout);
+router.post('/stripe-checkout',  requireAuth, csrfProtect, orderController.stripeCheckout);
+router.get('/',                  requireAuth, orderController.getOrders);
+router.get('/:id',               requireAuth, orderController.getOrder);
 
 // Admin routes
 router.get('/admin/all',      requireAuth, requireRole('admin'), orderController.getAllOrders);

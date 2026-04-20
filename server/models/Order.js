@@ -1,6 +1,6 @@
 const db = require('../config/database');
 
-const ORDER_COLUMNS = 'id, user_id, status, total_price, customer_name, customer_email, customer_phone, shipping_address, notes, created_at, updated_at';
+const ORDER_COLUMNS = 'id, user_id, status, total_price, customer_name, customer_email, customer_phone, shipping_address, notes, stripe_session_id, stripe_payment_intent_id, paid_at, created_at, updated_at';
 const ITEM_COLUMNS  = 'id, order_id, project_id, quantity, unit_price, product_title';
 
 class Order {
@@ -101,6 +101,154 @@ class Order {
       [status, Number(orderId)]
     );
     return rows[0] || null;
+  }
+
+  // ── Stripe flow ────────────────────────────────────────────────────────────
+  // Creates a pending order WITHOUT decrementing stock. Stock is taken off
+  // only when the Stripe webhook confirms payment — see markPaidWithStock().
+  static async createPending(userId, cartItems, shippingInfo) {
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Validate stock availability (but don't decrement yet)
+      for (const item of cartItems) {
+        const { rows } = await client.query(
+          `SELECT id, title, price, stock_quantity, status
+             FROM projects WHERE id = $1`,
+          [item.project_id]
+        );
+        const product = rows[0];
+        if (!product) throw Object.assign(new Error(`Product ${item.project_id} not found`), { statusCode: 404 });
+        if (product.status !== 'active') throw Object.assign(new Error(`${product.title} is not available`), { statusCode: 400 });
+        if (product.stock_quantity < item.quantity) {
+          throw Object.assign(new Error(`Insufficient stock for ${product.title} (available: ${product.stock_quantity})`), { statusCode: 400 });
+        }
+        item._price = product.price;
+        item._title = product.title;
+      }
+
+      const totalPrice = cartItems.reduce((sum, i) => sum + Number(i._price) * i.quantity, 0);
+
+      const { rows: orderRows } = await client.query(
+        `INSERT INTO orders (user_id, total_price, customer_name, customer_email, customer_phone, shipping_address, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING ${ORDER_COLUMNS}`,
+        [userId, totalPrice, shippingInfo.name, shippingInfo.email, shippingInfo.phone || null,
+         shippingInfo.address, shippingInfo.notes || null]
+      );
+      const order = orderRows[0];
+
+      for (const item of cartItems) {
+        await client.query(
+          `INSERT INTO order_items (order_id, project_id, quantity, unit_price, product_title)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [order.id, item.project_id, item.quantity, item._price, item._title]
+        );
+      }
+
+      await client.query('COMMIT');
+
+      const { rows: items } = await client.query(
+        `SELECT ${ITEM_COLUMNS} FROM order_items WHERE order_id = $1 ORDER BY id`,
+        [order.id]
+      );
+      order.items = items;
+      return order;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  static async setStripeSession(orderId, sessionId) {
+    await db.query(
+      'UPDATE orders SET stripe_session_id = $1 WHERE id = $2',
+      [sessionId, Number(orderId)]
+    );
+  }
+
+  static async findByStripeSessionId(sessionId) {
+    const { rows } = await db.query(
+      `SELECT ${ORDER_COLUMNS} FROM orders WHERE stripe_session_id = $1`,
+      [sessionId]
+    );
+    return rows[0] || null;
+  }
+
+  static async listItems(orderId) {
+    const { rows } = await db.query(
+      `SELECT ${ITEM_COLUMNS} FROM order_items WHERE order_id = $1 ORDER BY id`,
+      [Number(orderId)]
+    );
+    return rows;
+  }
+
+  // Atomic pending→confirmed transition plus stock decrement.
+  // Returns { transitioned: boolean, stockLost: boolean }.
+  static async markPaidWithStock(orderId, paymentIntentId) {
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Guard against duplicate webhook delivery — only pending orders flip.
+      const { rows } = await client.query(
+        `UPDATE orders
+            SET status = 'confirmed',
+                stripe_payment_intent_id = $1,
+                paid_at = NOW()
+          WHERE id = $2 AND status = 'pending'
+          RETURNING ${ORDER_COLUMNS}`,
+        [paymentIntentId, Number(orderId)]
+      );
+      if (rows.length === 0) {
+        await client.query('COMMIT');
+        return { transitioned: false, stockLost: false };
+      }
+
+      const { rows: items } = await client.query(
+        `SELECT ${ITEM_COLUMNS} FROM order_items WHERE order_id = $1`,
+        [Number(orderId)]
+      );
+
+      // Atomically decrement stock; any row with insufficient stock aborts.
+      let stockLost = false;
+      for (const it of items) {
+        const { rowCount } = await client.query(
+          `UPDATE projects
+              SET stock_quantity = stock_quantity - $1
+            WHERE id = $2 AND stock_quantity >= $1`,
+          [it.quantity, it.project_id]
+        );
+        if (rowCount === 0) { stockLost = true; break; }
+      }
+
+      if (stockLost) {
+        await client.query('ROLLBACK');
+        return { transitioned: false, stockLost: true };
+      }
+
+      await client.query('COMMIT');
+      return { transitioned: true, stockLost: false };
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  // Records a Stripe webhook event id if we haven't seen it before.
+  // Returns true if this is a new event (caller should process), false otherwise.
+  static async recordWebhookEvent(eventId) {
+    const { rowCount } = await db.query(
+      `INSERT INTO stripe_webhook_events (event_id) VALUES ($1)
+         ON CONFLICT (event_id) DO NOTHING`,
+      [eventId]
+    );
+    return rowCount === 1;
   }
 
   static async findAll(filters = {}) {
