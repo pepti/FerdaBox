@@ -10,6 +10,23 @@ import { showToast } from '../components/Toast.js';
 
 const CONTENT_KEY = 'contact_page';
 
+// Bot-proof email display: splits an "x@y.z" address into stylised parts
+// ("x [at] y [dot] z") so the raw mailto string never appears in the static
+// HTML source.  The real mailto href is assembled lazily from the parts on
+// first user interaction (hover/focus/touch/click) — naive scrapers that
+// don't simulate interaction get only the obfuscated text.
+function obfuscateEmail(raw) {
+  if (typeof raw !== 'string' || !raw.includes('@')) return { display: raw || '', parts: null };
+  const [local, domainFull] = raw.split('@');
+  const parts = domainFull.split('.');
+  const display = `${local} [at] ${parts[0]} [dot] ${parts.slice(1).join('.')}`;
+  return { display, parts: { local, domain: parts[0], tld: parts.slice(1).join('.') } };
+}
+function assembleEmail(parts) {
+  if (!parts) return '';
+  return `${parts.local}@${parts.domain}.${parts.tld}`;
+}
+
 // Default content mirrors the previous t()-based copy so first-time loads
 // before the admin edits anything look identical to the old page.
 function defaultContent() {
@@ -112,7 +129,7 @@ export class ContactView {
                 </div>
                 <div class="contact-card__body">
                   <div class="contact-card__label">${this._field('card_email_label')}</div>
-                  <div class="contact-card__value">${this._field('card_email_value')}</div>
+                  ${this._emailSlot()}
                 </div>
               </div>
 
@@ -199,6 +216,7 @@ export class ContactView {
 
     this._initForm(this._view);
     this._bindEditToggle();
+    this._bindEmailReveal();
 
     // In edit mode: block the submit button accidentally firing while the
     // admin is clicking around contenteditable spans.
@@ -206,6 +224,48 @@ export class ContactView {
       const submit = this._view.querySelector('#contact-page-submit');
       if (submit) submit.disabled = true;
     }
+  }
+
+  // Render the email "card" value.  In edit mode we keep the same
+  // data-field=card_email_value contenteditable slot so admins can type a
+  // real email.  In view mode we show the obfuscated text only — the raw
+  // mailto link is built in _bindEmailReveal() after user interaction.
+  _emailSlot() {
+    if (this._editMode) {
+      return `<div class="contact-card__value">${this._field('card_email_value')}</div>`;
+    }
+    const { display, parts } = obfuscateEmail(this._content.card_email_value);
+    const dataParts = parts
+      ? `data-email-local="${escHtml(parts.local)}" data-email-domain="${escHtml(parts.domain)}" data-email-tld="${escHtml(parts.tld)}"`
+      : '';
+    return `
+      <div class="contact-card__value" id="contact-email-slot" ${dataParts}>
+        <span data-field="card_email_value" class="contact-email-display">${escHtml(display)}</span>
+      </div>`;
+  }
+
+  _bindEmailReveal() {
+    if (this._editMode) return;
+    const slot = this._view.querySelector('#contact-email-slot');
+    if (!slot) return;
+    const parts = {
+      local:  slot.dataset.emailLocal,
+      domain: slot.dataset.emailDomain,
+      tld:    slot.dataset.emailTld,
+    };
+    if (!parts.local) return;
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      const addr = assembleEmail(parts);
+      // Replace the span with a real <a mailto:> — raw string now in DOM
+      // but only after user interaction, not in the static source.
+      slot.innerHTML = `<a href="mailto:${encodeURIComponent(addr).replace(/%40/g, '@')}" class="contact-email-link">${escHtml(addr)}</a>`;
+    };
+    ['mouseenter', 'focusin', 'touchstart', 'click'].forEach(ev =>
+      slot.addEventListener(ev, reveal, { once: true, passive: true })
+    );
   }
 
   _bindEditToggle() {
