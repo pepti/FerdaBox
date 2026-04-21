@@ -15,10 +15,13 @@ class Cart {
   }
 
   static async addItem(userId, projectId, quantity = 1) {
+    // The DB has a partial unique index on (user_id, project_id) WHERE variant_id IS NULL
+    // (see uniq_cart_items_user_project_novariant in schema), so the ON CONFLICT clause
+    // must include the same predicate for PostgreSQL to match the index.
     const { rows } = await db.query(
       `INSERT INTO cart_items (user_id, project_id, quantity)
        VALUES ($1, $2, $3)
-       ON CONFLICT (user_id, project_id)
+       ON CONFLICT (user_id, project_id) WHERE variant_id IS NULL
        DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity
        RETURNING id, project_id, quantity, created_at`,
       [userId, Number(projectId), Number(quantity)]
