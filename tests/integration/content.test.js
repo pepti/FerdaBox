@@ -18,6 +18,13 @@ const {
 
 let adminCookie;
 
+// The site_content.value column is declared JSONB in schema.js, but some
+// long-running dev DBs have drifted to TEXT. Normalise both shapes so the
+// assertions work regardless.
+function asObject(val) {
+  return typeof val === 'string' ? JSON.parse(val) : val;
+}
+
 beforeEach(async () => {
   // cleanTables doesn't touch site_content (not in its list), so clear it manually.
   await cleanTables();
@@ -41,17 +48,17 @@ describe('GET /api/v1/content/:key', () => {
     // the prod+test DBs have TEXT — the app parses client-side), so the
     // response body is the JSON-encoded string.
     await db.query(
-      `INSERT INTO site_content (key, value) VALUES ($1, $2)`,
+      `INSERT INTO site_content (key, value) VALUES ($1, $2::jsonb)`,
       ['hero_copy', JSON.stringify({ heading: 'Hello', body: 'World' })]
     );
     const res = await request(app).get('/api/v1/content/hero_copy');
     expect(res.status).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ heading: 'Hello', body: 'World' });
+    expect(asObject(res.body)).toEqual({ heading: 'Hello', body: 'World' });
   });
 
   test('is public — no authentication required', async () => {
     await db.query(
-      `INSERT INTO site_content (key, value) VALUES ($1, $2)`,
+      `INSERT INTO site_content (key, value) VALUES ($1, $2::jsonb)`,
       ['contact_info', JSON.stringify({ email: 'x@y.z' })]
     );
     const res = await request(app).get('/api/v1/content/contact_info');
@@ -66,18 +73,18 @@ describe('PUT /api/v1/content/:key', () => {
       .set('Cookie', adminCookie)
       .send({ headline: 'New', paragraph: 'Copy' });
     expect(res.status).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ headline: 'New', paragraph: 'Copy' });
+    expect(asObject(res.body)).toEqual({ headline: 'New', paragraph: 'Copy' });
 
     const { rows } = await db.query(
       `SELECT value FROM site_content WHERE key = 'about_page'`
     );
     expect(rows).toHaveLength(1);
-    expect(JSON.parse(rows[0].value)).toEqual({ headline: 'New', paragraph: 'Copy' });
+    expect(asObject(rows[0].value)).toEqual({ headline: 'New', paragraph: 'Copy' });
   });
 
   test('admin can overwrite an existing key (upsert)', async () => {
     await db.query(
-      `INSERT INTO site_content (key, value) VALUES ($1, $2)`,
+      `INSERT INTO site_content (key, value) VALUES ($1, $2::jsonb)`,
       ['about_page', JSON.stringify({ headline: 'Old' })]
     );
 
@@ -86,7 +93,7 @@ describe('PUT /api/v1/content/:key', () => {
       .set('Cookie', adminCookie)
       .send({ headline: 'New', extra: true });
     expect(res.status).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ headline: 'New', extra: true });
+    expect(asObject(res.body)).toEqual({ headline: 'New', extra: true });
   });
 
   test('unauthenticated returns 401', async () => {
