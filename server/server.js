@@ -55,29 +55,26 @@ async function start() {
 
   // Old gallery seeds removed — FerdaBox uses product seeds from seed.js only.
 
-  // Admin bootstrap: create the initial admin user from env vars if none exists.
-  // Required env: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD. No-op once an admin exists.
+  // Admin sync: upsert the admin user declared by env vars on every boot.
+  // Required env: ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD. The env vars are
+  // the source of truth — changing them and restarting will update the stored
+  // hash. Skipped entirely if any of the three are unset.
   try {
     const { ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
     if (ADMIN_USERNAME && ADMIN_EMAIL && ADMIN_PASSWORD) {
-      const { rows } = await pool.query(
-        "SELECT 1 FROM users WHERE role = 'admin' LIMIT 1"
+      const { Scrypt } = require('oslo/password');
+      const hash = await new Scrypt().hash(ADMIN_PASSWORD);
+      await pool.query(
+        `INSERT INTO users (email, username, password_hash, role)
+         VALUES ($1, $2, $3, 'admin')
+         ON CONFLICT (username) DO UPDATE
+           SET email = EXCLUDED.email, password_hash = EXCLUDED.password_hash, role = 'admin'`,
+        [ADMIN_EMAIL, ADMIN_USERNAME, hash]
       );
-      if (rows.length === 0) {
-        const { Scrypt } = require('oslo/password');
-        const hash = await new Scrypt().hash(ADMIN_PASSWORD);
-        await pool.query(
-          `INSERT INTO users (email, username, password_hash, role)
-           VALUES ($1, $2, $3, 'admin')
-           ON CONFLICT (username) DO UPDATE
-             SET email = EXCLUDED.email, password_hash = EXCLUDED.password_hash, role = 'admin'`,
-          [ADMIN_EMAIL, ADMIN_USERNAME, hash]
-        );
-        logger.info({ username: ADMIN_USERNAME }, '[server] Admin user bootstrapped');
-      }
+      logger.info({ username: ADMIN_USERNAME }, '[server] Admin user synced from env');
     }
   } catch (err) {
-    logger.warn({ err: err.message }, '[server] Admin bootstrap skipped');
+    logger.warn({ err: err.message }, '[server] Admin sync skipped');
   }
 
   const server = app.listen(PORT, '0.0.0.0', () => {
